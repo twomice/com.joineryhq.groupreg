@@ -3,10 +3,33 @@
 require_once 'groupreg.civix.php';
 use CRM_Groupreg_ExtensionUtil as E;
 
+function groupreg_civicrm_buildForm($formName, &$form) {
+  if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
+    $form->addElement('checkbox', 'isHideNotYou', ts('Hide "Not you" message?'));
+    $form->addElement('checkbox', 'isPromptRelated', ts('Prompt with related individuals on Additional Partipant forms?'));
+    $form->addRadio('isPrimaryAttending', E::ts('Primary participant is attendee'), [
+      CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
+      CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
+      CRM_Groupreg_Util::primaryIsAteendeeSelect => E::ts("Allow user to select"),
+    ], NULL, '<BR />');
+
+    $bhfe = $form->get_template_vars('beginHookFormElements');
+    if (!$bhfe) {
+      $bhfe = [];
+    }
+    $bhfe[] = 'isHideNotYou';
+    $bhfe[] = 'isPromptRelated';
+    $bhfe[] = 'isPrimaryAttending';
+    $form->assign('beginHookFormElements', $bhfe);
+
+    CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_ManageEvent_Registration.js');
+  }
+}
+
 /**
  * Implements hook_civicrm_config().
  *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config/ 
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config/
  */
 function groupreg_civicrm_config(&$config) {
   _groupreg_civix_civicrm_config($config);
