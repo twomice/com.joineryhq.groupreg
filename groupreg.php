@@ -4,6 +4,31 @@ require_once 'groupreg.civix.php';
 use CRM_Groupreg_ExtensionUtil as E;
 
 /**
+ * Implements hook_civicrm_validateForm().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_validateForm/
+ */
+function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
+  if($formName == 'CRM_Event_Form_ManageEvent_Registration') {
+    // Validating the "online registration" event config form, ensure 'non-attending role'
+    // is specfied if 'primary participant is attending' is anything but "yes".
+
+    // Don't bother with this if we've disabled online registration, or if
+    // 'allow multiple' is false, or if 'primary participant is attending' is
+    // 'yes'
+    if (
+      CRM_Utils_Array::value('is_online_registration', $form->_submitValues)
+      && CRM_Utils_Array::value('is_multiple_registrations', $form->_submitValues)
+      && (CRM_Utils_Array::value('is_primary_attending', $form->_submitValues) != CRM_Groupreg_Util::primaryIsAteendeeYes)
+    ) {
+      if (empty(CRM_Utils_Array::value('nonattendee_role_id', $form->_submitValues))) {
+        $errors['nonattendee_role_id'] = E::ts('The field "Primary participant is attendee" is not set to "Yes"; you must specify a non-attending role.');
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_civicrm_buildForm().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_postProcess/
