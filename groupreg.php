@@ -3,27 +3,130 @@
 require_once 'groupreg.civix.php';
 use CRM_Groupreg_ExtensionUtil as E;
 
-function groupreg_civicrm_buildForm($formName, &$form) {
+/**
+ * Implements hook_civicrm_buildForm().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_postProcess/
+ */
+function groupreg_civicrm_postProcess($formName, &$form) {
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
-    $form->addElement('checkbox', 'isHideNotYou', ts('Hide "Not you" message?'));
-    $form->addElement('checkbox', 'isPromptRelated', ts('Prompt with related individuals on Additional Partipant forms?'));
-    $form->addRadio('isPrimaryAttending', E::ts('Primary participant is attendee'), [
-      CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
-      CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
-      CRM_Groupreg_Util::primaryIsAteendeeSelect => E::ts("Allow user to select"),
-    ], NULL, '<BR />');
+    // Here we need to save all of our injected fields on this form.
 
+    // Get a list of the injected fields for this form.
+    $fieldNames = _groupreg_buildForm_fields($formName);
+
+    // Get the existing settings record for this event, if any.
+    $groupregEventGet = \Civi\Api4\GroupregEvent::get()
+      ->addWhere('event_id', '=', $form->_id)
+      ->execute()
+      ->first();
+    // If existing record wasn't found, we'll create.
+    if (empty($groupregEventGet)) {
+      $groupregEvent = \Civi\Api4\GroupregEvent::create()
+        ->addValue('event_id', $form->_id);
+    }
+    // If it was found, we'll just update it.
+    else {
+      $groupregEvent = \Civi\Api4\GroupregEvent::update()
+        ->addWhere('id', '=', $groupregEventGet['id']);
+    }
+    // Whether create or update, add the values of our injected fields.
+    foreach ($fieldNames as $fieldName) {
+      $groupregEvent->addValue($fieldName, $form->_submitValues[$fieldName]);
+    }
+    // Create/update settings record.
+    $groupregEvent->execute();
+  }
+}
+
+/**
+ * Implements hook_civicrm_buildForm().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_buildForm/
+ */
+function groupreg_civicrm_buildForm($formName, &$form) {
+  // Get fieldnames for this form, if any, and assign to template.
+  $fieldNames = _groupreg_buildForm_fields($formName, $form);
+  if (!empty($fieldNames)) {
     $bhfe = $form->get_template_vars('beginHookFormElements');
     if (!$bhfe) {
       $bhfe = [];
     }
-    $bhfe[] = 'isHideNotYou';
-    $bhfe[] = 'isPromptRelated';
-    $bhfe[] = 'isPrimaryAttending';
+    foreach ($fieldNames as $fieldName) {
+      $bhfe[] = $fieldName;
+    }
     $form->assign('beginHookFormElements', $bhfe);
+  }
 
+  if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
+    // Populate default values for our fields.
+    $groupregEvent = \Civi\Api4\GroupregEvent::get()
+      ->addWhere('event_id', '=', $form->_id)
+      ->addSelect('is_hide_not_you')
+      ->addSelect('is_prompt_related')
+      ->addSelect('is_primary_attending')
+      ->execute()
+      ->first();
+    $defaults = [];
+    if (!empty($groupregEvent)) {
+      foreach ($fieldNames as $fieldName) {
+        $defaults[$fieldName] = $groupregEvent[$fieldName];
+      }
+    }
+    // 'is_primary_attending' defaults to 'yes' even if no settings exist for this event.
+    $defaults['is_primary_attending'] = CRM_Utils_Array::value('is_primary_attending', $defaults, 1);
+    $form->setDefaults($defaults);
+    // Insert the JS file that will put fields in the right places and handle other on-screen behaviors.
     CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_ManageEvent_Registration.js');
   }
+  elseif ($formName == 'CRM_Event_Form_Registration_Register') {
+    // Is event set for multiple participant registration?
+    $event = civicrm_api3('event', 'getSingle', ['id' => $form->_eventId]);
+    if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
+      $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
+        '1' => E::ts("Yes, I'm attending"),
+        '0' => E::ts("No, I'm only registering other people"),
+      ]);
+
+      $bhfe = $form->get_template_vars('beginHookFormElements');
+      if (!$bhfe) {
+        $bhfe = [];
+      }
+      $bhfe[] = 'isRegisteringSelf';
+      $form->assign('beginHookFormElements', $bhfe);
+
+      CRM_Core_Resources::singleton()->addScriptFile('namelessevents', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
+    }
+  }
+}
+
+/**
+ * Add injected elements to $form (if provided), and in any case return a list
+ * of the injected fields for $formName.
+ *
+ * @param type $formName
+ * @param type $form
+ * @return string
+ */
+function _groupreg_buildForm_fields($formName, &$form = NULL) {
+  $fieldNames = [];
+  if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
+    if ($form !== NULL) {
+      $form->addElement('checkbox', 'is_hide_not_you', ts('Hide "Not you" message?'));
+      $form->addElement('checkbox', 'is_prompt_related', ts('Prompt with related individuals on Additional Partipant forms?'));
+      $form->addRadio('is_primary_attending', E::ts('Primary participant is attendee'), [
+        CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
+        CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
+        CRM_Groupreg_Util::primaryIsAteendeeSelect => E::ts("Allow user to select"),
+      ], NULL, '<BR />');
+    }
+    $fieldNames = [
+      'is_hide_not_you',
+      'is_prompt_related',
+      'is_primary_attending',
+    ];
+  }
+  return $fieldNames;
 }
 
 /**

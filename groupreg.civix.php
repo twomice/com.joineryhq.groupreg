@@ -473,5 +473,11 @@ function _groupreg_civix_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) 
 
 function _groupreg_civix_civicrm_entityTypes(&$entityTypes) {
   $entityTypes = array_merge($entityTypes, array (
+    'CRM_Groupreg_DAO_GroupregEvent' => 
+    array (
+      'name' => 'GroupregEvent',
+      'class' => 'CRM_Groupreg_DAO_GroupregEvent',
+      'table' => 'civicrm_groupreg_event',
+    ),
   ));
 }

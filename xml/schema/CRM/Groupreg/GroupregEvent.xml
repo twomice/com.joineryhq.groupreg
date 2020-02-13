@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<table>
+  <base>CRM/Groupreg</base>
+  <class>GroupregEvent</class>
+  <name>civicrm_groupreg_event</name>
+  <comment>Stores per-event settings for groupreg extension</comment>
+  <log>true</log>
+
+  <field>
+    <name>id</name>
+    <type>int unsigned</type>
+    <required>true</required>
+    <comment>Uniq identifier</comment>
+  </field>
+  <primaryKey>
+    <name>id</name>
+    <autoincrement>true</autoincrement>
+  </primaryKey>
+
+  <field>
+    <name>event_id</name>
+    <type>int unsigned</type>
+    <required>true</required>
+    <comment>FK to Event</comment>
+  </field>
+  <foreignKey>
+    <name>event_id</name>
+    <table>civicrm_event</table>
+    <key>id</key>
+    <onDelete>CASCADE</onDelete>
+  </foreignKey>
+
+  <field>
+    <name>is_hide_not_you</name>
+    <title>Hide "Not You" message?</title>
+    <import>true</import>
+    <export>true</export>
+    <type>boolean</type>
+    <required>true</required>
+    <default>0</default>
+  </field>
+
+  <field>
+    <name>is_prompt_related</name>
+    <title>Prompt with related individuals on Additional Partipant forms?</title>
+    <import>true</import>
+    <export>true</export>
+    <type>boolean</type>
+    <required>true</required>
+    <default>0</default>
+  </field>
+
+  <field>
+    <name>is_primary_attending</name>
+    <title>Primary participant is attendee</title>
+    <type>int unsigned</type>
+    <import>true</import>
+    <export>true</export>
+    <required>true</required>
+    <default>1</default>
+  </field>
+
+</table>
