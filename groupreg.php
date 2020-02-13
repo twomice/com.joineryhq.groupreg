@@ -62,9 +62,6 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     // Populate default values for our fields.
     $groupregEvent = \Civi\Api4\GroupregEvent::get()
       ->addWhere('event_id', '=', $form->_id)
-      ->addSelect('is_hide_not_you')
-      ->addSelect('is_prompt_related')
-      ->addSelect('is_primary_attending')
       ->execute()
       ->first();
     $defaults = [];
@@ -119,11 +116,13 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
         CRM_Groupreg_Util::primaryIsAteendeeSelect => E::ts("Allow user to select"),
       ], NULL, '<BR />');
+      $form->addElement('select', 'nonattendee_role_id', ts('Non-attendee role'), ['' => E::ts('- select -')] + CRM_Event_BAO_Participant::buildOptions('participant_role_id') , ['class' => 'crm-select2']);
     }
     $fieldNames = [
       'is_hide_not_you',
       'is_prompt_related',
       'is_primary_attending',
+      'nonattendee_role_id',
     ];
   }
   return $fieldNames;

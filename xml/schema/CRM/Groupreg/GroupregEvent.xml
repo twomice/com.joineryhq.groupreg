@@ -61,4 +61,15 @@
     <default>1</default>
   </field>
 
+  <field>
+    <name>nonattendee_role_id</name>
+    <title>Non-attending participant role</title>
+    <type>int unsigned</type>
+    <import>true</import>
+    <export>true</export>
+    <required>true</required>
+    <default>1</default>
+    <comment>Pseudo-FK to civicrm_option_value for participant_role</comment>
+  </field>
+
 </table>
