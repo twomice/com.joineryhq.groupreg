@@ -149,7 +149,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         ->addWhere('event_id', '=', $form->_eventId)
         ->execute()
         ->first();
-      $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEvent);
+      $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEvent, CRM_Groupreg_Util::primaryIsAteendeeYes);
       $isHideNotYou = CRM_Utils_Array::value('is_hide_not_you', $groupregEvent);
       if ($isPrimaryAttending == CRM_Groupreg_Util::primaryIsAteendeeSelect) {
         $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
@@ -169,8 +169,9 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       $jsVars['nonAttendeeHiddenPriceFields'] = [];
       $jsVars['formId'] = $form->_attributes['id'];
 
-      // If isPrimaryAttending is not "yes", allow for hiding price fields via JS.
+      // If isPrimaryAttending is not "yes", prepare for additional features.
       if ($isPrimaryAttending != CRM_Groupreg_Util::primaryIsAteendeeYes) {
+        // Allow for hiding price fields via JS.
         $jsVars['nonAttendeeHiddenPriceFields'] = _groupreg_getNonAttendeeHiddenPriceFields($form->_eventId);
         // Add a hidden field for transmitting names of dynamically hidden fields.
         $form->add('hidden', 'groupregHiddenPriceFields', NULL, array('id' => 'groupregHiddenPriceFields'));
@@ -198,11 +199,14 @@ function groupreg_civicrm_buildForm($formName, &$form) {
           // Store the list so we can add them back later.
           $form->_attributes['groupregTemporarilyUnrequiredFields'] = $groupregTemporarilyUnrequiredFields;
         }
-      }
 
-      $additional_participants = $form->getElement('additional_participants');
-      $additional_participants->addOption('- ' . E::ts('SELECT') . '-', '-1');
-      array_unshift($additional_participants->_options, array_pop($additional_participants->_options));
+        // Also provide more active handling of the "additional participants" select
+        // control, startin with addition of an empty "-SELECT-" option, to facilitate
+        // more careful UX on the reg form.
+        $additional_participants = $form->getElement('additional_participants');
+        $additional_participants->addOption('- ' . E::ts('SELECT') . '-', '-1');
+        array_unshift($additional_participants->_options, array_pop($additional_participants->_options));
+      }
 
       CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
       CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
