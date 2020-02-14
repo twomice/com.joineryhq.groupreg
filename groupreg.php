@@ -26,6 +26,12 @@ function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$e
       }
     }
   }
+
+  if (array_key_exists('groupregTemporarilyUnrequiredFields', $form->_attributes)) {
+    // Re-add tempoarily unrequired fields to the list of required fields, so that
+    // they are by default required when not hidden.
+    $form->_required = array_merge($form->_required, $form->_attributes['groupregTemporarilyUnrequiredFields']);
+  }
 }
 
 /**
@@ -158,25 +164,37 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         $form->assign('beginHookFormElements', $bhfe);
       }
       $jsVars['isPrimaryAttending'] = $isPrimaryAttending;
-      $jsVars['hidePriceFieldsForNonAttendee'] = [];
+      $jsVars['nonAttendeeHiddenPriceFields'] = [];
+      $jsVars['formId'] = $form->_attributes['id'];
 
+      // If isPrimaryAttending is not "yes", allow for hiding price fields via JS.
       if ($isPrimaryAttending != CRM_Groupreg_Util::primaryIsAteendeeYes) {
-        // Add jsvars to manage price fields when primary is not attending.
-        $priceSetId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $form->_eventId);
-        if ($priceSetId) {
-          $fieldsGet = civicrm_api3('PriceField', 'get', [
-            'price_set_id' => $priceSetId,
-            'api.GroupregPriceField.get' => [],
-            'options' => ['limit' => 0],
-          ]);
-          foreach ($fieldsGet['values'] as $priceFieldId => $priceField) {
-            if (!empty($priceField['api.GroupregPriceField.get'])) {
-              $groupregPriceField = reset($priceField['api.GroupregPriceField.get']);
-              if ($groupregPriceField['is_hide_non_participant']) {
-                $jsVars['hidePriceFieldsForNonAttendee'][] = $priceFieldId;
-              }
+        $jsVars['nonAttendeeHiddenPriceFields'] = _groupreg_getNonAttendeeHiddenPriceFields($form->_eventId);
+        // Add a hidden field for transmitting names of dynamically hidden fields.
+        $form->add('hidden', 'groupregHiddenPriceFields', NULL, array('id' => 'groupregHiddenPriceFields'));
+        // Take specific action when form has been submitted; namely, we need to
+        // avoid 'required' validation on price fields that were hidden by us.
+        // To do this, we need to remove them from the list of 'required' elements
+        // now; we can't do it in our validateForm hook implementation because
+        // the core form validation runs first. Instead we do it here, so that the
+        // core form validation won't enforce that required setting. We'll add
+        // them back to the 'required' list in our own validateForm hook implementation,
+        // so that they will properly default to being required when they aren't
+        // hidden, eg. when the form reloads.
+        if ($form->_flagSubmitted) {
+          // Note the value of groupregHiddenPriceFields and temporarily strip them
+          // from the "required" array. (We'll add them back later in hook_civicrm_validateForm().)
+          $hiddenFieldNames = json_decode($form->_submitValues['groupregHiddenPriceFields']);
+          $groupregTemporarilyUnrequiredFields = [];
+          foreach ($hiddenFieldNames as $hiddenFieldName) {
+            $index = array_search($hiddenFieldName, $form->_required);
+            if ($index) {
+              unset($form->_required[$index]);
+              $groupregTemporarilyUnrequiredFields[] = $hiddenFieldName;
             }
           }
+          // Store the list so we can add them back later.
+          $form->_attributes['groupregTemporarilyUnrequiredFields'] = $groupregTemporarilyUnrequiredFields;
         }
       }
 
@@ -246,6 +264,39 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
     ];
   }
   return $fieldNames;
+}
+
+/**
+ * Get a list of all price field IDs for the given event's price set (if any) which
+ * are marked for hiding from non-attending registrants.
+ *
+ * @param type $eventId
+ * @return type
+ */
+function _groupreg_getNonAttendeeHiddenPriceFields($eventId) {
+  $nonAttendeeHiddenPriceFields = [];
+  // Get the price set for this event, if any.
+  $priceSetId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eventId);
+  if ($priceSetId) {
+    // Get the price fields for this price set, including our own groupreg
+    // settings for each field.
+    $fieldsGet = civicrm_api3('PriceField', 'get', [
+      'price_set_id' => $priceSetId,
+      'api.GroupregPriceField.get' => [],
+      'options' => ['limit' => 0],
+    ]);
+    // Loop through fields, and add to jsvars if the field is marked for
+    // hiding from non-attending registrants.
+    foreach ($fieldsGet['values'] as $priceFieldId => $priceField) {
+      if (!empty($priceField['api.GroupregPriceField.get'])) {
+        $groupregPriceField = reset($priceField['api.GroupregPriceField.get']);
+        if ($groupregPriceField['is_hide_non_participant']) {
+          $nonAttendeeHiddenPriceFields[] = $priceFieldId;
+        }
+      }
+    }
+  }
+  return $nonAttendeeHiddenPriceFields;
 }
 
 /**
