@@ -62,6 +62,7 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
+DROP TABLE IF EXISTS `civicrm_groupreg_price_field`;
 DROP TABLE IF EXISTS `civicrm_groupreg_event`;
 
 SET FOREIGN_KEY_CHECKS=1;
@@ -92,6 +93,26 @@ CREATE TABLE `civicrm_groupreg_event` (
  
  
 ,          CONSTRAINT FK_civicrm_groupreg_event_event_id FOREIGN KEY (`event_id`) REFERENCES `civicrm_event`(`id`) ON DELETE CASCADE  
+)    ;
+
+-- /*******************************************************
+-- *
+-- * civicrm_groupreg_price_field
+-- *
+-- * Stores per-field settings for groupreg extension
+-- *
+-- *******************************************************/
+CREATE TABLE `civicrm_groupreg_price_field` (
+
+
+     `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique GroupregPriceField ID',
+     `price_field_id` int unsigned NOT NULL   COMMENT 'FK to Price Field',
+     `is_hide_non_participant` tinyint NOT NULL  DEFAULT 0  
+,
+        PRIMARY KEY (`id`)
+ 
+ 
+,          CONSTRAINT FK_civicrm_groupreg_price_field_price_field_id FOREIGN KEY (`price_field_id`) REFERENCES `civicrm_price_field`(`id`) ON DELETE CASCADE  
 )    ;
 
  

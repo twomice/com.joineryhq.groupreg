@@ -479,5 +479,11 @@ function _groupreg_civix_civicrm_entityTypes(&$entityTypes) {
       'class' => 'CRM_Groupreg_DAO_GroupregEvent',
       'table' => 'civicrm_groupreg_event',
     ),
+    'CRM_Groupreg_DAO_GroupregPriceField' => 
+    array (
+      'name' => 'GroupregPriceField',
+      'class' => 'CRM_Groupreg_DAO_GroupregPriceField',
+      'table' => 'civicrm_groupreg_price_field',
+    ),
   ));
 }

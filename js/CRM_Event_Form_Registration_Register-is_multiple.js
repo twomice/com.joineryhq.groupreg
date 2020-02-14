@@ -7,6 +7,22 @@
     $('div#noOfparticipants div.content').wrapInner('<span id="noOfParticipants-extra">');
     $('span#noOfParticipants-extra').before(selectNoOfParticipants);
 
+    var showNonAttendeePriceFields = function showNonAttendeePriceFields(isShow) {
+      if (isShow == undefined) {isShow = true;}
+      console.log('isShow', isShow);
+      for (var i in CRM.vars.groupreg.hidePriceFieldsForNonAttendee) {
+        console.log('CRM.vars.groupreg.hidePriceFieldsForNonAttendee['+ i +']', CRM.vars.groupreg.hidePriceFieldsForNonAttendee[i]);
+        if (isShow) {
+          console.log('show #price_'+ CRM.vars.groupreg.hidePriceFieldsForNonAttendee[i]);
+          $('#price_'+ CRM.vars.groupreg.hidePriceFieldsForNonAttendee[i]).closest('div.crm-section').show();
+        }
+        else {
+          console.log('hide #price_'+ CRM.vars.groupreg.hidePriceFieldsForNonAttendee[i]);
+          $('#price_'+ CRM.vars.groupreg.hidePriceFieldsForNonAttendee[i]).closest('div.crm-section').hide();          
+        }
+      }
+    };
+    
     // If "parimary is attending" is "user select":
     if (CRM.vars.groupreg.isPrimaryAttending == 2) {
       // Change handler for "are you attending" radios.
@@ -14,10 +30,14 @@
         $('div#noOfparticipants').show();
 
         if($('input[type="radio"][name="isRegisteringSelf"][value="1"]').is(':checked')) {
+          // Primary is attending.
           $('span#noOfParticipants-extra').show();
+          showNonAttendeePriceFields(TRUE);
         }
         else {
+          // Primary is NOT attending.
           $('span#noOfParticipants-extra').hide();
+          showNonAttendeePriceFields(false);
         }
         divIsRegisteringSelf.nextAll().show();      
       };
@@ -49,6 +69,8 @@
     else if (CRM.vars.groupreg.isPrimaryAttending == 0) {
       // Re-label the "(including yourself)" label. 
 //      $('span#noOfParticipants-extra').html('(' + ts('FIXME') + ')');      
+          showNonAttendeePriceFields(false);
+
     }
 
     

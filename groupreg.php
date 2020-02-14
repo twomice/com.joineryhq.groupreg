@@ -62,6 +62,35 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     // Create/update settings record.
     $groupregEvent->execute();
   }
+  elseif ($formName == 'CRM_Price_Form_Field') {
+    // Here we need to save all of our injected fields on this form.
+
+    // Get a list of the injected fields for this form.
+    $fieldNames = _groupreg_buildForm_fields($formName);
+
+    // Get the existing settings record for this field, if any.
+    $fieldId = $form->getVar('_fid');
+    $groupregPriceFieldGet = \Civi\Api4\GroupregPriceField::get()
+      ->addWhere('price_field_id', '=', $fieldId)
+      ->execute()
+      ->first();
+    // If existing record wasn't found, we'll create.
+    if (empty($groupregPriceFieldGet)) {
+      $groupregPriceField = \Civi\Api4\GroupregPriceField::create()
+        ->addValue('price_field_id', $fieldId);
+    }
+    // If it was found, we'll just update it.
+    else {
+      $groupregPriceField = \Civi\Api4\GroupregPriceField::update()
+        ->addWhere('id', '=', $groupregPriceFieldGet['id']);
+    }
+    // Whether create or update, add the values of our injected fields.
+    foreach ($fieldNames as $fieldName) {
+      $groupregPriceField->addValue($fieldName, $form->_submitValues[$fieldName]);
+    }
+    // Create/update settings record.
+    $groupregPriceField->execute();
+  }
 }
 
 /**
@@ -108,6 +137,8 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       ->execute()
       ->first();
     if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
+      $jsVars = [];
+      // Add fields to manage "primary is attending" for this registration.
       $groupregEvent = \Civi\Api4\GroupregEvent::get()
         ->addWhere('event_id', '=', $form->_eventId)
         ->execute()
@@ -126,13 +157,49 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         $bhfe[] = 'isRegisteringSelf';
         $form->assign('beginHookFormElements', $bhfe);
       }
+      $jsVars['isPrimaryAttending'] = $isPrimaryAttending;
+      $jsVars['hidePriceFieldsForNonAttendee'] = [];
 
-      $vars = [
-        'isPrimaryAttending' => $isPrimaryAttending,
-      ];
-      CRM_Core_Resources::singleton()->addVars('groupreg', $vars);
+      if ($isPrimaryAttending != CRM_Groupreg_Util::primaryIsAteendeeYes) {
+        // Add jsvars to manage price fields when primary is not attending.
+        $priceSetId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $form->_eventId);
+        if ($priceSetId) {
+          $fieldsGet = civicrm_api3('PriceField', 'get', [
+            'price_set_id' => $priceSetId,
+            'api.GroupregPriceField.get' => [],
+            'options' => ['limit' => 0],
+          ]);
+          foreach ($fieldsGet['values'] as $priceFieldId => $priceField) {
+            if (!empty($priceField['api.GroupregPriceField.get'])) {
+              $groupregPriceField = reset($priceField['api.GroupregPriceField.get']);
+              if ($groupregPriceField['is_hide_non_participant']) {
+                $jsVars['hidePriceFieldsForNonAttendee'][] = $priceFieldId;
+              }
+            }
+          }
+        }
+      }
+
+      CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
       CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
     }
+  }
+  elseif ($formName == 'CRM_Price_Form_Field') {
+    $fieldId = $form->getVar('_fid');
+    // Populate default values for our fields.
+    $groupregPriceField = \Civi\Api4\GroupregPriceField::get()
+      ->addWhere('price_field_id', '=', $fieldId)
+      ->execute()
+      ->first();
+    $defaults = [];
+    if (!empty($groupregPriceField)) {
+      foreach ($fieldNames as $fieldName) {
+        $defaults[$fieldName] = $groupregPriceField[$fieldName];
+      }
+    }
+    $form->setDefaults($defaults);
+    // Insert the JS file that will put fields in the right places and handle other on-screen behaviors.
+    CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Price_Form_Field.js');
   }
 }
 
@@ -168,6 +235,14 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       'is_prompt_related',
       'is_primary_attending',
       'nonattendee_role_id',
+    ];
+  }
+  elseif ($formName == 'CRM_Price_Form_Field') {
+    if ($form !== NULL) {
+      $form->addElement('checkbox', 'is_hide_non_participant', ts('Hide from non-participating primary registrants?'));
+    }
+    $fieldNames = [
+      'is_hide_non_participant',
     ];
   }
   return $fieldNames;
