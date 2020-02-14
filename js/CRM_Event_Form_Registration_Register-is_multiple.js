@@ -79,12 +79,12 @@
      */
     var toggleNonAttendeeDisplay = function toggleNonAttendeeDisplay() {
       if (isThisPrimaryAttending) {
-        $('div.groupreg-isNonAttendeeHidden').show();
-        $('span#noOfParticipants-extra').show();
+        $('.groupreg-isNonAttendeeHidden').show();
+        $('.groupreg-isNonAttendeeShow').hide();
       }
       else {
-        $('div.groupreg-isNonAttendeeHidden').hide();
-        $('span#noOfParticipants-extra').hide();
+        $('.groupreg-isNonAttendeeHidden').hide();
+        $('.groupreg-isNonAttendeeShow').show();
       }
       rebuildAdditionalParticipantsOptions();
     };
@@ -123,7 +123,7 @@
       toggleNonAttendeeDisplay();
 
       if($('input[type="radio"][name="isRegisteringSelf"]:checked').length) {
-        $('select#additional_participants').closest('div.crm-section').show();
+        $('div#noOfparticipants').show();
       }
       additionalParticipantsChange();
     };
@@ -132,7 +132,7 @@
      * Define a change handler for "additional_participants"
      */
     var additionalParticipantsChange = function additionalParticipantsChange() {
-      var section = $('select#additional_participants').closest('div.crm-section');
+      var section = $('div#noOfparticipants');
       if($('select#additional_participants').val() != -1)  {
         section.nextAll().show();
       }
@@ -148,8 +148,13 @@
       // Inject markup to facilitate show/hide of "(including yourself)" label.
       var selectNoOfParticipants = $('div#noOfparticipants div.content select').detach();
       $('div#noOfparticipants div.content span.description').hide();
-      $('div#noOfparticipants div.content').wrapInner('<span id="noOfParticipants-extra">');
+      $('div#noOfparticipants div.content').wrapInner('<span id="noOfParticipants-extra" class="groupreg-isNonAttendeeHidden">');
       $('span#noOfParticipants-extra').before(selectNoOfParticipants);
+
+      // Insert alert that user is not registering themselves, as context for fields
+      // on this page.
+      var nonAttendeeNotification = ts("Though you're not attending, please tell us about yourself here:");
+      $('div#noOfparticipants').after('<div><div id="nonAttendeeNotification" class="groupreg-isNonAttendeeShow messages status">' + nonAttendeeNotification + '</div></div>');
 
       // Add an identifiable class to all price field divs for nonAttendeeHidden fields.
       for (var i in CRM.vars.groupreg.nonAttendeeHiddenPriceFields) {
