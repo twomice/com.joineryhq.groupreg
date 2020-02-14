@@ -1,0 +1,6 @@
+select#additional_participants {
+  /* We've added a "-SELECT-" option to this list, causing it to display poorly
+   * with the core  styling. Adjust padding so full width displays.
+   */
+  padding: 4px 35px 4px 10px !important;
+}

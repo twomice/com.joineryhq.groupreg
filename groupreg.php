@@ -198,8 +198,13 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         }
       }
 
+      $additional_participants = $form->getElement('additional_participants');
+      $additional_participants->addOption('- ' . E::ts('SELECT') . '-', '-1');
+      array_unshift($additional_participants->_options, array_pop($additional_participants->_options));
+
       CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
       CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
+      CRM_Core_Resources::singleton()->addStyleFile('com.joineryhq.groupreg', 'css/CRM_Event_Form_Registration_Register-is_multiple.css');
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {

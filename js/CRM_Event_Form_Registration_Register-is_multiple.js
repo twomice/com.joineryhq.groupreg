@@ -1,12 +1,15 @@
 (function(ts) {
-  CRM.$(function($) {
-    
-    // Inject markup to facilitate show/hide of "(including yourself)" label.      
-    var selectNoOfParticipants = $('div#noOfparticipants div.content select').detach();
-    $('div#noOfparticipants div.content span.description').hide();
-    $('div#noOfparticipants div.content').wrapInner('<span id="noOfParticipants-extra">');
-    $('span#noOfParticipants-extra').before(selectNoOfParticipants);
+    CRM.$(function($) {
+    if (CRM.vars.groupreg.isPrimaryAttending == undefined || CRM.vars.groupreg.isPrimaryAttending == 1) {
+      // This is the default civicrm behavior; just return, we'll do nothing here.
+      return;
+    }
 
+    // Page-level variable indicating whether the registering user is attending.
+    // Depending on event settings,this may be forced to false, forced to true,
+    // or set by user selection. Defaults to true because that's civicrm core
+    // expectation.
+    var isThisPrimaryAttending = true;
 
     /**
      * Compile a list of all ':hidden' fields and store that list in the 'groupregHiddenPriceFields'
@@ -41,48 +44,66 @@
       $('#groupregHiddenPriceFields').val(JSON.stringify(hiddenFields));
     };
 
-
-    // Function to show or hide price fields for non-attending registrants.
-    var showNonAttendeeHiddenPriceFields = function showNonAttendeeHiddenPriceFields(isShow) {
-      if (isShow == undefined) {
-        isShow = true;
-      }
-      if (isShow) {
+    /**
+     * Function to show or hide price fields for non-attending registrants.
+     */
+    var toggleNonAttendeeDisplay = function toggleNonAttendeeDisplay() {
+      if (isThisPrimaryAttending) {
         $('div.groupreg-isNonAttendeeHidden').show();
+        $('span#noOfParticipants-extra').show();
       }
       else {
         $('div.groupreg-isNonAttendeeHidden').hide();
+        $('span#noOfParticipants-extra').hide();
       }
     };
-    
+
+    /**
+     * Define a change handler for "are you attending" radios.
+     */
+    var isRegisteringSelfChange = function isRegisteringSelfChange() {
+      if($('input[type="radio"][name="isRegisteringSelf"][value="1"]').is(':checked')) {
+        // Primary is attending.
+        isThisPrimaryAttending = true;
+      }
+      else {
+        // Primary is NOT attending.
+        isThisPrimaryAttending = false;
+      }
+      toggleNonAttendeeDisplay();
+
+      if($('input[type="radio"][name="isRegisteringSelf"]:checked').length) {
+        $('select#additional_participants').closest('div.crm-section').show();
+      }
+      additionalParticipantsChange();
+    };
+
+    /**
+     * Define a change handler for "additional_participants"
+     */
+    var additionalParticipantsChange = function additionalParticipantsChange() {
+      var section = $('select#additional_participants').closest('div.crm-section');
+      if($('select#additional_participants').val() != -1)  {
+        section.nextAll().show();
+      }
+      else {
+        section.nextAll().hide();
+      }
+    };
+
+    // Inject markup to facilitate show/hide of "(including yourself)" label.
+    var selectNoOfParticipants = $('div#noOfparticipants div.content select').detach();
+    $('div#noOfparticipants div.content span.description').hide();
+    $('div#noOfparticipants div.content').wrapInner('<span id="noOfParticipants-extra">');
+    $('span#noOfParticipants-extra').before(selectNoOfParticipants);
+
     // Add an identifiable class to all price field divs for nonAttendeeHidden fields.
     for (var i in CRM.vars.groupreg.nonAttendeeHiddenPriceFields) {
       $('#price_'+ CRM.vars.groupreg.nonAttendeeHiddenPriceFields[i]).closest('div.crm-section').addClass('groupreg-isNonAttendeeHidden');
     }
-    
+
     // If "primary is attending" is "user select":
     if (CRM.vars.groupreg.isPrimaryAttending == 2) {
-      // Define a change handler for "are you attending" radios.
-      var isRegisteringSelfChange = function isRegisteringSelfChange() {
-        
-        $('div#noOfparticipants').show();
-
-        if($('input[type="radio"][name="isRegisteringSelf"][value="1"]').is(':checked')) {
-          // Primary is attending.
-          $('span#noOfParticipants-extra').show();
-          showNonAttendeeHiddenPriceFields(true);
-        }
-        else {
-          // Primary is NOT attending.
-          $('span#noOfParticipants-extra').hide();
-          showNonAttendeeHiddenPriceFields(false);
-        }
-        
-        if($('input[type="radio"][name="isRegisteringSelf"]:checked').length) {
-          divIsRegisteringSelf.nextAll().show();      
-        }
-      };
-
       // BHFE elements will be created in this form, presented in a table at top of page.
       // Add ID to bhfe table so we can work with it.
       $('input[type="radio"][name="isRegisteringSelf"]').closest('table').attr('id', 'bhfe_table');
@@ -97,10 +118,10 @@
       divIsRegisteringSelf.find('div.content').empty();
       divIsRegisteringSelf.find('div.content').append($('input[type="radio"][name="isRegisteringSelf"]').siblings());
       $('div.additional_participants-section').before(divIsRegisteringSelf);
-      
+
       // Remove bhfe table; it should be empty now anyway.
       $('table#bhfe_table').remove();
-      
+
       // Hide all other form fields; they need to answer this question first.
       divIsRegisteringSelf.nextAll().hide();
 
@@ -111,17 +132,25 @@
     }
     // If "parimary is attending" is "No":
     else if (CRM.vars.groupreg.isPrimaryAttending == 0) {
-      // Re-label the "(including yourself)" label. 
-//      $('span#noOfParticipants-extra').html('(' + ts('FIXME') + ')');      
+      // Primary is NOT attending.
+      isThisPrimaryAttending = false;
+
+      // Re-label the "(including yourself)" label.
+//      $('span#noOfParticipants-extra').html('(' + ts('This does not include yourself.') + ')');
           // Since "parimary is attending" is hard-coded to "No", we must hide
           // all non-attendee-hidden price fields.
-          showNonAttendeeHiddenPriceFields(false);
     }
-    
+
+    // Assign change handler for "additional_participants".
+    $('select#additional_participants').change(additionalParticipantsChange);
+    additionalParticipantsChange();
+
+    toggleNonAttendeeDisplay();
+
     // Add submit handler to form, to pass compiled list of hidden fields with submission.
     $('form#' + CRM.vars.groupreg.formId).submit(groupregStoreHidden);
 
 
-    
+
   });
 }(CRM.ts('groupreg')));
