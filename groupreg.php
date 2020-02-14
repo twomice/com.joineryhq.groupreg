@@ -9,7 +9,7 @@ use CRM_Groupreg_ExtensionUtil as E;
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_validateForm/
  */
 function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
-  if($formName == 'CRM_Event_Form_ManageEvent_Registration') {
+  if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
     // Validating the "online registration" event config form, ensure 'non-attending role'
     // is specfied if 'primary participant is attending' is anything but "yes".
 
@@ -103,21 +103,35 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
     // Is event set for multiple participant registration?
-    $event = civicrm_api3('event', 'getSingle', ['id' => $form->_eventId]);
+    $event = \Civi\Api4\Event::get()
+      ->addWhere('id', '=', $form->_eventId)
+      ->execute()
+      ->first();
     if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
-      $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
-        '1' => E::ts("Yes, I'm attending"),
-        '0' => E::ts("No, I'm only registering other people"),
-      ]);
+      $groupregEvent = \Civi\Api4\GroupregEvent::get()
+        ->addWhere('event_id', '=', $form->_eventId)
+        ->execute()
+        ->first();
+      $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEvent);
+      if ($isPrimaryAttending == CRM_Groupreg_Util::primaryIsAteendeeSelect) {
+        $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
+          '1' => E::ts("Yes, I'm attending"),
+          '0' => E::ts("No, I'm only registering other people"),
+        ]);
 
-      $bhfe = $form->get_template_vars('beginHookFormElements');
-      if (!$bhfe) {
-        $bhfe = [];
+        $bhfe = $form->get_template_vars('beginHookFormElements');
+        if (!$bhfe) {
+          $bhfe = [];
+        }
+        $bhfe[] = 'isRegisteringSelf';
+        $form->assign('beginHookFormElements', $bhfe);
       }
-      $bhfe[] = 'isRegisteringSelf';
-      $form->assign('beginHookFormElements', $bhfe);
 
-      CRM_Core_Resources::singleton()->addScriptFile('namelessevents', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
+      $vars = [
+        'isPrimaryAttending' => $isPrimaryAttending,
+      ];
+      CRM_Core_Resources::singleton()->addVars('groupreg', $vars);
+      CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
     }
   }
 }
@@ -141,7 +155,13 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
         CRM_Groupreg_Util::primaryIsAteendeeSelect => E::ts("Allow user to select"),
       ], NULL, '<BR />');
-      $form->addElement('select', 'nonattendee_role_id', ts('Non-attendee role'), ['' => E::ts('- select -')] + CRM_Event_BAO_Participant::buildOptions('participant_role_id') , ['class' => 'crm-select2']);
+      $form->addElement(
+        'select',
+        'nonattendee_role_id',
+        ts('Non-attendee role'),
+        ['' => E::ts('- select -')] + CRM_Event_BAO_Participant::buildOptions('participant_role_id'),
+        ['class' => 'crm-select2']
+      );
     }
     $fieldNames = [
       'is_hide_not_you',
