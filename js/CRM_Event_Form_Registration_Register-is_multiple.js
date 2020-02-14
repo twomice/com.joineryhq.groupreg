@@ -204,7 +204,15 @@
     // Add submit handler to form, to pass compiled list of hidden fields with submission.
     $('form#' + CRM.vars.groupreg.formId).submit(groupregStoreHidden);
 
+   // Hide "not you" message if called for
+   if (CRM.vars.groupreg.isHideNotYou) {
+     $('div#crm-event-register-different').hide();
+   }
 
+   // Ensure the form itself is finally visible. Until this point, it's been
+   // hidden by its style attribute (see buildForm hook implementation), giving
+   // us time to do all the show/hide stuff above.
+   $('form#Register').show();
 
   });
 }(CRM.ts('groupreg')));

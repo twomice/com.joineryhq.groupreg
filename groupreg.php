@@ -150,6 +150,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         ->execute()
         ->first();
       $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEvent);
+      $isHideNotYou = CRM_Utils_Array::value('is_hide_not_you', $groupregEvent);
       if ($isPrimaryAttending == CRM_Groupreg_Util::primaryIsAteendeeSelect) {
         $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
           '1' => E::ts("Yes, I'm attending"),
@@ -164,6 +165,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         $form->assign('beginHookFormElements', $bhfe);
       }
       $jsVars['isPrimaryAttending'] = $isPrimaryAttending;
+      $jsVars['isHideNotYou'] = (bool)$isHideNotYou;
       $jsVars['nonAttendeeHiddenPriceFields'] = [];
       $jsVars['formId'] = $form->_attributes['id'];
 
@@ -205,6 +207,12 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
       CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Register-is_multiple.js');
       CRM_Core_Resources::singleton()->addStyleFile('com.joineryhq.groupreg', 'css/CRM_Event_Form_Registration_Register-is_multiple.css');
+
+      /* JavaScript actions on this form may be slow, leading to a jumpy display.
+       * Hide it with style attribute to give JS code time to do its thing. JS
+       * will then display the form.
+       */
+       $form->_attributes['style'] = "display:none";
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
