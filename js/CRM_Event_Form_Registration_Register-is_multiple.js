@@ -5,11 +5,45 @@
       return;
     }
 
-    // Page-level variable indicating whether the registering user is attending.
-    // Depending on event settings,this may be forced to false, forced to true,
-    // or set by user selection. Defaults to true because that's civicrm core
-    // expectation.
+    /* Page-level variable indicating whether the registering user is attending.
+     * Depending on event settings,this may be forced to false, forced to true,
+     * or set by user selection. Defaults to true because that's civicrm core
+     * expectation.
+     *
+     * @type Boolean
+     */
     var isThisPrimaryAttending = true;
+
+    /**
+     * Array of jquery objects containing all options in original
+     * additional_participants select list.
+     *
+     * @type jQuery object
+     */
+    var originalAdditionalParticipantsOptions = $('select#additional_participants option');
+
+    /**
+     * Abriged list of options for additional_participants, to be used when
+     * registering participant is not attending.
+     *
+     * @type jQuery object
+     */
+    var abridgedAdditionalParticipantsOptions = [];
+
+    /**
+     * Prime the array abridgedAdditionalParticipantsOptions, if it's not been
+     * done already.
+     */
+    var primeAbridgedAdditionalParticipantsOptions = function primeAbridgedAdditionalParticipantsOptions() {
+      if (!abridgedAdditionalParticipantsOptions.length) {
+        abridgedAdditionalParticipantsOptions = originalAdditionalParticipantsOptions.clone().filter('[value!=""]');
+        abridgedAdditionalParticipantsOptions.each(function(idx, el){
+          if (el.value > 0) {
+            $(el).text(el.value);
+          }
+        });
+      }
+    };
 
     /**
      * Compile a list of all ':hidden' fields and store that list in the 'groupregHiddenPriceFields'
@@ -56,19 +90,39 @@
         $('div.groupreg-isNonAttendeeHidden').hide();
         $('span#noOfParticipants-extra').hide();
       }
+      rebuildAdditionalParticipantsOptions();
+    };
+
+    /**
+     * Adjust the options in additional_participants as appropriate, depeding on
+     * whether registring participant is attendee.
+     */
+    var rebuildAdditionalParticipantsOptions = function rebuildAdditionalParticipantsOptions() {
+      var val = $('select#additional_participants').val();
+      if (isThisPrimaryAttending) {
+        $('select#additional_participants').empty().append(originalAdditionalParticipantsOptions).val(val);
+      }
+      else {
+        primeAbridgedAdditionalParticipantsOptions();
+        $('select#additional_participants').empty().append(abridgedAdditionalParticipantsOptions).val(val);
+      }
+      if (! $('select#additional_participants').val()) {
+        $('select#additional_participants').val(-1);
+      }
+
     };
 
     /**
      * Define a change handler for "are you attending" radios.
      */
     var isRegisteringSelfChange = function isRegisteringSelfChange() {
-      if($('input[type="radio"][name="isRegisteringSelf"][value="1"]').is(':checked')) {
-        // Primary is attending.
-        isThisPrimaryAttending = true;
-      }
-      else {
+      if($('input[type="radio"][name="isRegisteringSelf"][value="0"]').is(':checked')) {
         // Primary is NOT attending.
         isThisPrimaryAttending = false;
+      }
+      else {
+        // Primary is attending.
+        isThisPrimaryAttending = true;
       }
       toggleNonAttendeeDisplay();
 
