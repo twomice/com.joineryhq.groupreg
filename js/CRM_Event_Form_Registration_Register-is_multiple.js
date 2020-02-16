@@ -26,6 +26,9 @@
      */
     var abridgedAdditionalParticipantsOptions = [];
 
+    var nonAttendeeDisplayCachedValues = {};
+
+
     /**
      * Prime the array abridgedAdditionalParticipantsOptions, if it's not been
      * done already.
@@ -81,12 +84,32 @@
       if (isThisPrimaryAttending) {
         $('.groupreg-isNonAttendeeHidden').show();
         $('.groupreg-isNonAttendeeShow').hide();
+        cacheAndClearNonAttendeeDisplayValues(false);
       }
       else {
         $('.groupreg-isNonAttendeeHidden').hide();
         $('.groupreg-isNonAttendeeShow').show();
+        cacheAndClearNonAttendeeDisplayValues(true);
       }
-      rebuildAdditionalParticipantsOptions();
+      rebuildAdditionalParticipantsOptions(true);
+    };
+
+    var cacheAndClearNonAttendeeDisplayValues = function cacheAndClearNonAttendeeDisplayValues(doClear) {
+      $('.groupreg-isNonAttendeeHidden input, .groupreg-isNonAttendeeHidden select').each(function (idx, el){
+        if (doClear) {
+          // Cache first.
+          nonAttendeeDisplayCachedValues[el.id] = $(el).val();
+          // Then clear the field.
+          if ($(el).val()) {
+            $(el).val('').change();
+          }
+        }
+        else {
+          if (nonAttendeeDisplayCachedValues[el.id]) {
+            $(el).val(nonAttendeeDisplayCachedValues[el.id]).change();
+          }
+        }
+      });
     };
 
     /**
