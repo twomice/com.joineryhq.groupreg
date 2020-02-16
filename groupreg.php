@@ -165,7 +165,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         $form->assign('beginHookFormElements', $bhfe);
       }
       $jsVars['isPrimaryAttending'] = $isPrimaryAttending;
-      $jsVars['isHideNotYou'] = (bool)$isHideNotYou;
+      $jsVars['isHideNotYou'] = (bool) $isHideNotYou;
       $jsVars['nonAttendeeHiddenPriceFields'] = [];
       $jsVars['formId'] = $form->_attributes['id'];
 
@@ -216,7 +216,27 @@ function groupreg_civicrm_buildForm($formName, &$form) {
        * Hide it with style attribute to give JS code time to do its thing. JS
        * will then display the form.
        */
-       $form->_attributes['style'] = "display:none";
+      $form->_attributes['style'] = "display:none";
+    }
+  }
+  elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
+    $params = $form->getVar('_params');
+    // If primary is not attending, change page title and status messages to
+    // reflect decremented participant counts.
+    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
+      $total = CRM_Utils_Array::value('additional_participants', $params[0]);
+      $participantNo = substr($form->getVar('_name'), 12);
+      CRM_Utils_System::setTitle(ts('Register Participant %1 of %2', array(1 => $participantNo, 2 => $total)));
+      _groupreg_correct_status_messages();
+    }
+  }
+  elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
+    $params = $form->getVar('_params');
+    // If primary is not attending, change status message to reflect decremented
+    // participant counts.
+    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
+      _groupreg_correct_status_messages();
+      CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Confirm-decrement-counters.js');
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
@@ -238,6 +258,27 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   }
 }
 
+function _groupreg_correct_status_messages() {
+  $session = CRM_Core_Session::singleton();
+  $statuses = $session->getStatus(TRUE);
+  $additionalRegex = '/' . E::ts('Registration information for participant %1 has been saved.', array(1 => '([0-9]+)')) . '/';
+  foreach ($statuses as $status) {
+    $matches = [];
+    if (preg_match($additionalRegex, $status['text'], $matches)) {
+      $correctedParticipantCount = --$matches[1];
+      if ($correctedParticipantCount == 0) {
+        $status['text'] = E::ts('Your information has been saved.');
+
+      }
+      else {
+        $status['text'] = E::ts('Registration information for participant %1 has been saved.', array(1 => $correctedParticipantCount));
+      }
+    }
+    $status['options'] = $status['options'] ?: [];
+    call_user_func_array('CRM_Core_Session::setStatus', $status);
+  }
+}
+
 /**
  * Add injected elements to $form (if provided), and in any case return a list
  * of the injected fields for $formName.
@@ -250,8 +291,8 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   $fieldNames = [];
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
     if ($form !== NULL) {
-      $form->addElement('checkbox', 'is_hide_not_you', ts('Hide "Not you" message?'));
-      $form->addElement('checkbox', 'is_prompt_related', ts('Prompt with related individuals on Additional Partipant forms?'));
+      $form->addElement('checkbox', 'is_hide_not_you', E::ts('Hide "Not you" message?'));
+      $form->addElement('checkbox', 'is_prompt_related', E::ts('Prompt with related individuals on Additional Partipant forms?'));
       $form->addRadio('is_primary_attending', E::ts('Primary participant is attendee'), [
         CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
@@ -260,7 +301,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       $form->addElement(
         'select',
         'nonattendee_role_id',
-        ts('Non-attendee role'),
+        E::ts('Non-attendee role'),
         ['' => E::ts('- select -')] + CRM_Event_BAO_Participant::buildOptions('participant_role_id'),
         ['class' => 'crm-select2']
       );
@@ -274,7 +315,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
     if ($form !== NULL) {
-      $form->addElement('checkbox', 'is_hide_non_participant', ts('Hide from non-participating primary registrants?'));
+      $form->addElement('checkbox', 'is_hide_non_participant', E::ts('Hide from non-participating primary registrants?'));
     }
     $fieldNames = [
       'is_hide_non_participant',
