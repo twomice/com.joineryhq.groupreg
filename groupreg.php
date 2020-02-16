@@ -4,6 +4,21 @@ require_once 'groupreg.civix.php';
 use CRM_Groupreg_ExtensionUtil as E;
 
 /**
+ * Implements hook_civicrm_apiWrappers().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_apiWrappers/
+ */
+function groupreg_civicrm_apiWrappers(&$wrappers, $apiRequest) {
+  if (
+    strtolower($apiRequest['entity']) == 'contact'
+    && strtolower($apiRequest['action']) == 'get'
+    && CRM_Utils_Array::value('isGroupregPrefill', $apiRequest['params'])
+  ) {
+    $wrappers[] = new CRM_Groupreg_APIWrappers_Contact();
+  }
+}
+
+/**
  * Implements hook_civicrm_validateForm().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_validateForm/
@@ -129,14 +144,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   // Get fieldnames for this form, if any, and assign to template.
   $fieldNames = _groupreg_buildForm_fields($formName, $form);
   if (!empty($fieldNames)) {
-    $bhfe = $form->get_template_vars('beginHookFormElements');
-    if (!$bhfe) {
-      $bhfe = [];
-    }
-    foreach ($fieldNames as $fieldName) {
-      $bhfe[] = $fieldName;
-    }
-    $form->assign('beginHookFormElements', $bhfe);
+    _groupreg_add_bhfe($fieldNames, $form);
   }
 
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
@@ -160,6 +168,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
     // Is event set for multiple participant registration?
     $event = \Civi\Api4\Event::get()
+      ->setCheckPermissions(FALSE)
       ->addWhere('id', '=', $form->_eventId)
       ->execute()
       ->first();
@@ -168,6 +177,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // Add fields to manage "primary is attending" for this registration.
       $groupregEvent = \Civi\Api4\GroupregEvent::get()
         ->addWhere('event_id', '=', $form->_eventId)
+        ->setCheckPermissions(FALSE)
         ->execute()
         ->first();
       $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEvent, CRM_Groupreg_Util::primaryIsAteendeeYes);
@@ -178,12 +188,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
           '0' => E::ts("No, I'm only registering other people"),
         ]);
 
-        $bhfe = $form->get_template_vars('beginHookFormElements');
-        if (!$bhfe) {
-          $bhfe = [];
-        }
-        $bhfe[] = 'isRegisteringSelf';
-        $form->assign('beginHookFormElements', $bhfe);
+        _groupreg_add_bhfe(['isRegisteringSelf'], $form);
       }
       $jsVars['isPrimaryAttending'] = $isPrimaryAttending;
       $jsVars['isHideNotYou'] = (bool) $isHideNotYou;
@@ -234,8 +239,9 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       CRM_Core_Resources::singleton()->addStyleFile('com.joineryhq.groupreg', 'css/CRM_Event_Form_Registration_Register-is_multiple.css');
 
       /* JavaScript actions on this form may be slow, leading to a jumpy display.
-       * Hide it with style attribute to give JS code time to do its thing. JS
-       * will then display the form.
+       * To give JS code time to do its thing, hide it with style attribute (hiding
+       * with JS is obviously too slow, and CSS usually is too). JS will then
+       * display the form when it's ready.
        */
       $form->_attributes['style'] = "display:none";
     }
@@ -285,6 +291,17 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     // Insert the JS file that will put fields in the right places and handle other on-screen behaviors.
     CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Price_Form_Field.js');
   }
+}
+
+function _groupreg_add_bhfe(array $elementNames, CRM_Core_Form &$form) {
+  $bhfe = $form->get_template_vars('beginHookFormElements');
+  if (!$bhfe) {
+    $bhfe = [];
+  }
+  foreach ($elementNames as $elementName) {
+    $bhfe[] = $elementName;
+  }
+  $form->assign('beginHookFormElements', $bhfe);
 }
 
 function _groupreg_correct_status_messages() {
@@ -341,6 +358,25 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       'is_primary_attending',
       'nonattendee_role_id',
     ];
+  }
+  elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
+    $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+    $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
+    if ($firstRelationship) {
+      // With no parameters passed in, will create a single contact select
+      $entityRefParams = [
+        'create' => FALSE,
+        'api' => [
+          'params' => [
+            'isGroupregPrefill' => TRUE,
+          ],
+        ],
+      ];
+      $fieldNames[] = 'groupregPrefillContact';
+      $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
+      // Strip entityref filters so that they dont' confuse user.
+      CRM_Core_Resources::singleton()->addScript('CRM.config.entityRef.filters.Contact = [];');
+    }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
     if ($form !== NULL) {
