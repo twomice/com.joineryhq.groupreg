@@ -97,6 +97,28 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     // Create/update settings record.
     $groupregPriceField->execute();
   }
+  elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
+    $primaryPid = $form->getVar('_participantId');
+    $formValues = $form->getVar('_values');
+    if (!CRM_Utils_Array::value('isRegisteringSelf', $formValues['params'][$primaryPid], 1)) {
+      $formParams = $form->getVar('_params');
+      $eventId = CRM_Utils_Array::value('eventID', $formParams);
+
+      // get nonattendee_role_id
+      $groupregEventGet = \Civi\Api4\GroupregEvent::get()
+        ->addWhere('event_id', '=', $eventId)
+        ->execute()
+        ->first();
+      $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventGet);
+      if ($nonAttendeeRoleId && $primaryPid) {
+        $participantUpdate = \Civi\Api4\Participant::update()
+          ->addWhere('id', '=', $primaryPid)
+          ->addValue('role_id', $nonAttendeeRoleId)
+          ->execute();
+
+      }
+    }
+  }
 }
 
 /**
