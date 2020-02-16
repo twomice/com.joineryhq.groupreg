@@ -115,7 +115,6 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           ->addWhere('id', '=', $primaryPid)
           ->addValue('role_id', $nonAttendeeRoleId)
           ->execute();
-
       }
     }
   }
@@ -243,13 +242,21 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   }
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     $params = $form->getVar('_params');
-    // If primary is not attending, change page title and status messages to
-    // reflect decremented participant counts.
+    // If primary is not attending:
     if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
+      // Change page title and status messages to reflect decremented
+      // participant counts.
       $total = CRM_Utils_Array::value('additional_participants', $params[0]);
       $participantNo = substr($form->getVar('_name'), 12);
       CRM_Utils_System::setTitle(ts('Register Participant %1 of %2', array(1 => $participantNo, 2 => $total)));
       _groupreg_correct_status_messages();
+
+      // Also hide "skip participant" on first additional participant; this is
+      // meant to prevent user from subitting only themselves while still saying
+      // they won't attend.
+      // TODO: Having to use !important is a bad smell, would like to completely
+      // remove the button via php.
+      CRM_Core_Resources::singleton()->addStyle('span.crm-button_qf_Participant_1_next_skip {display:none !important  ;}', 1, 'html-header');
     }
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
