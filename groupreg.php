@@ -64,6 +64,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     // Get the existing settings record for this event, if any.
     $groupregEventGet = \Civi\Api4\GroupregEvent::get()
       ->addWhere('event_id', '=', $form->_id)
+      ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
     // If existing record wasn't found, we'll create.
@@ -81,7 +82,9 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       $groupregEvent->addValue($fieldName, $form->_submitValues[$fieldName]);
     }
     // Create/update settings record.
-    $groupregEvent->execute();
+    $groupregEvent
+      ->setCheckPermissions(FALSE)
+      ->execute();
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
     // Here we need to save all of our injected fields on this form.
@@ -93,6 +96,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     $fieldId = $form->getVar('_fid');
     $groupregPriceFieldGet = \Civi\Api4\GroupregPriceField::get()
       ->addWhere('price_field_id', '=', $fieldId)
+      ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
     // If existing record wasn't found, we'll create.
@@ -110,7 +114,9 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       $groupregPriceField->addValue($fieldName, $form->_submitValues[$fieldName]);
     }
     // Create/update settings record.
-    $groupregPriceField->execute();
+    $groupregPriceField
+      ->setCheckPermissions(FALSE)
+      ->execute();
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
     $primaryPid = $form->getVar('_participantId');
@@ -126,6 +132,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
         $participantUpdate = \Civi\Api4\Participant::update()
           ->addWhere('id', '=', $primaryPid)
           ->addValue('role_id', $nonAttendeeRoleId)
+          ->setCheckPermissions(FALSE)
           ->execute();
       }
     }
@@ -136,6 +143,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       if ($participantId == $primaryPid) {
         $participant = \Civi\Api4\Participant::get()
           ->addWhere('id', '=', $participantId)
+          ->setCheckPermissions(FALSE)
           ->execute()
           ->first();
         $primaryParticipantCid = $participant['contact_id'];
@@ -165,6 +173,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           // Get the contact_id from the participant record.
           $participant = \Civi\Api4\Participant::get()
             ->addWhere('id', '=', $participantId)
+            ->setCheckPermissions(FALSE)
             ->execute()
             ->first();
           $participantCid = $participant['contact_id'];
@@ -177,7 +186,9 @@ function groupreg_civicrm_postProcess($formName, &$form) {
         $relationship
           ->addValue('relationship_type_id', $relationshipTypeId)
           ->addValue($permission_column, 1);
-        $relationship->execute();
+        $relationship
+          ->setCheckPermissions(FALSE)
+          ->execute();
       }
     }
   }
@@ -213,8 +224,8 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
     // Is event set for multiple participant registration?
     $event = \Civi\Api4\Event::get()
-      ->setCheckPermissions(FALSE)
       ->addWhere('id', '=', $form->_eventId)
+      ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
     if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
@@ -341,6 +352,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     // Populate default values for our fields.
     $groupregPriceField = \Civi\Api4\GroupregPriceField::get()
       ->addWhere('price_field_id', '=', $fieldId)
+      ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
     $defaults = [];
@@ -379,8 +391,11 @@ function _groupreg_add_bhfe(array $elementNames, CRM_Core_Form &$form) {
 }
 
 function _groupreg_correct_status_messages() {
-  $session = CRM_Core_Session::singleton();
-  $statuses = $session->getStatus(TRUE);
+  $statuses = CRM_Core_Session::singleton()->getStatus(TRUE);
+  if (!is_array($statuses)){
+    // If ther are no statuses, $statuses could be NULL. Just return.
+    return;
+  };
   $additionalRegex = '/' . E::ts('Registration information for participant %1 has been saved.', array(1 => '([0-9]+)')) . '/';
   foreach ($statuses as $status) {
     $matches = [];
@@ -459,23 +474,25 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
           ];
           $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
 
-          // Select2 list of relationship types.
-          // TODO: support limitation of these types (and possibly re-labeling of them)
-          // in the UI.
-          $relationshipTypeParams = [
-            'contact_id' => $userCid,
-            'contact_type' => 'Individual',
-            'is_form' => TRUE,
-          ];
-          $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
-          $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
-
           // Hidden field to hold id of an existing relationship.
           $form->addElement('hidden', 'groupregRelationshipId', '', ['id' => 'groupregRelationshipId']);
 
           CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related.js');
         }
       }
+
+      // Select2 list of relationship types.
+      // TODO: support limitation of these types (and possibly re-labeling of them)
+      // in the UI.
+      $relationshipTypeParams = [
+        'contact_id' => $userCid,
+        'contact_type' => 'Individual',
+        'is_form' => TRUE,
+      ];
+      $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
+      $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+
+
     }
     $fieldNames = [
       'groupregPrefillContact',
