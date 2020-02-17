@@ -263,6 +263,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // TODO: Having to use !important is a bad smell, would like to completely
       // remove the button via php.
       CRM_Core_Resources::singleton()->addStyle('span.crm-button_qf_Participant_1_next_skip {display:none !important  ;}', 1, 'html-header');
+      CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-not-self-reg.js');
     }
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
@@ -374,8 +375,6 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       ];
       $fieldNames[] = 'groupregPrefillContact';
       $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
-      // Strip entityref filters so that they dont' confuse user.
-      CRM_Core_Resources::singleton()->addScript('CRM.config.entityRef.filters.Contact = [];');
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
