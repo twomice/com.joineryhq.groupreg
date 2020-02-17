@@ -688,7 +688,7 @@ function groupreg_civicrm_navigationMenu(&$menu) {
  */
 function _groupregGetEventSettings($eventId) {
   static $eventSettings = [];
-  if (!in_array($ventId, $eventSettings)) {
+  if (!in_array($eventId, $eventSettings)) {
     // Add fields to manage "primary is attending" for this registration.
     $eventSettings[$eventId] = \Civi\Api4\GroupregEvent::get()
       ->addWhere('event_id', '=', $eventId)
