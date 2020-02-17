@@ -126,7 +126,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       $eventId = CRM_Utils_Array::value('eventID', $formParams);
 
       // get nonattendee_role_id
-      _groupregGetEventSettings($eventId);
+      $groupregEventSettings = _groupregGetEventSettings($eventId);
       $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventSettings);
       if ($nonAttendeeRoleId && $primaryPid) {
         $participantUpdate = \Civi\Api4\Participant::update()
@@ -392,7 +392,7 @@ function _groupreg_add_bhfe(array $elementNames, CRM_Core_Form &$form) {
 
 function _groupreg_correct_status_messages() {
   $statuses = CRM_Core_Session::singleton()->getStatus(TRUE);
-  if (!is_array($statuses)){
+  if (!is_array($statuses)) {
     // If ther are no statuses, $statuses could be NULL. Just return.
     return;
   };
@@ -491,8 +491,6 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       ];
       $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
       $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
-
-
     }
     $fieldNames = [
       'groupregPrefillContact',
