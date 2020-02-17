@@ -1,7 +1,7 @@
 /**
- * This file is only included on Additional Participant form when the reistrant
- * has said they are not attending.
- *
+ * This file is only included on Additional Participant form when 
+ * a) the event is configured to prompt for related contacts; AND
+ * b) the registrant actually has permissioned related contacts.
  */
 
 (function(ts) {

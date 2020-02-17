@@ -120,11 +120,8 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       $eventId = CRM_Utils_Array::value('eventID', $formParams);
 
       // get nonattendee_role_id
-      $groupregEventGet = \Civi\Api4\GroupregEvent::get()
-        ->addWhere('event_id', '=', $eventId)
-        ->execute()
-        ->first();
-      $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventGet);
+      _groupregGetEventSettings($eventId);
+      $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventSettings);
       if ($nonAttendeeRoleId && $primaryPid) {
         $participantUpdate = \Civi\Api4\Participant::update()
           ->addWhere('id', '=', $primaryPid)
@@ -200,14 +197,11 @@ function groupreg_civicrm_buildForm($formName, &$form) {
 
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
     // Populate default values for our fields.
-    $groupregEvent = \Civi\Api4\GroupregEvent::get()
-      ->addWhere('event_id', '=', $form->_id)
-      ->execute()
-      ->first();
+    $groupregEventSettings = _groupregGetEventSettings($form->_id);
     $defaults = [];
-    if (!empty($groupregEvent)) {
+    if (!empty($groupregEventSettings)) {
       foreach ($fieldNames as $fieldName) {
-        $defaults[$fieldName] = $groupregEvent[$fieldName];
+        $defaults[$fieldName] = $groupregEventSettings[$fieldName];
       }
     }
     // 'is_primary_attending' defaults to 'yes' even if no settings exist for this event.
@@ -226,13 +220,9 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
       $jsVars = [];
       // Add fields to manage "primary is attending" for this registration.
-      $groupregEvent = \Civi\Api4\GroupregEvent::get()
-        ->addWhere('event_id', '=', $form->_eventId)
-        ->setCheckPermissions(FALSE)
-        ->execute()
-        ->first();
-      $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEvent, CRM_Groupreg_Util::primaryIsAteendeeYes);
-      $isHideNotYou = CRM_Utils_Array::value('is_hide_not_you', $groupregEvent);
+      $groupregEventSettings = _groupregGetEventSettings($form->_eventId);
+      $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings, CRM_Groupreg_Util::primaryIsAteendeeYes);
+      $isHideNotYou = CRM_Utils_Array::value('is_hide_not_you', $groupregEventSettings);
       if ($isPrimaryAttending == CRM_Groupreg_Util::primaryIsAteendeeSelect) {
         $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
           '1' => E::ts("Yes, I'm attending"),
@@ -268,7 +258,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
           $groupregTemporarilyUnrequiredFields = [];
           foreach ($hiddenFieldNames as $hiddenFieldName) {
             $index = array_search($hiddenFieldName, $form->_required);
-            if ($index) {
+            if ($index !== FALSE) {
               unset($form->_required[$index]);
               $groupregTemporarilyUnrequiredFields[] = $hiddenFieldName;
             }
@@ -314,16 +304,25 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // TODO: Having to use !important is a bad smell, would like to completely
       // remove the button via php.
       CRM_Core_Resources::singleton()->addStyle('span.crm-button_qf_Participant_1_next_skip {display:none !important  ;}', 1, 'html-header');
-      CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-not-self-reg.js');
     }
-  }
-  elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
-    $params = $form->getVar('_params');
-    // If primary is not attending, change status message to reflect decremented
-    // participant counts.
-    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
-      _groupreg_correct_status_messages();
-      CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_Confirm-decrement-counters.js');
+    // Allow "skip participant" without requring 'groupregRelationshipType' field.
+    if ($form->_flagSubmitted) {
+      $button = substr($form->controller->getButtonName(), -4);
+      if ($button == 'skip') {
+        // Note the value of groupregHiddenPriceFields and temporarily strip them
+        // from the "required" array. (We'll add them back later in hook_civicrm_validateForm().)
+        $hiddenFieldNames = ['groupregRelationshipType'];
+        $groupregTemporarilyUnrequiredFields = [];
+        foreach ($hiddenFieldNames as $hiddenFieldName) {
+          $index = array_search($hiddenFieldName, $form->_required);
+          if ($index !== FALSE) {
+            unset($form->_required[$index]);
+            $groupregTemporarilyUnrequiredFields[] = $hiddenFieldName;
+          }
+        }
+        // Store the list so we can add them back later.
+        $form->_attributes['groupregTemporarilyUnrequiredFields'] = $groupregTemporarilyUnrequiredFields;
+      }
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
@@ -342,6 +341,18 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     $form->setDefaults($defaults);
     // Insert the JS file that will put fields in the right places and handle other on-screen behaviors.
     CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Price_Form_Field.js');
+  }
+  elseif (
+    $formName == 'CRM_Event_Form_Registration_Confirm'
+    || $formName == 'CRM_Event_Form_Registration_ThankYou'
+  ) {
+    $params = $form->getVar('_params');
+    // If primary is not attending, change status message to reflect decremented
+    // participant counts.
+    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
+      _groupreg_correct_status_messages();
+      CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_-decrement-counters.js');
+    }
   }
 }
 
@@ -413,41 +424,46 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   }
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     if ($form !== NULL) {
-      $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
-      $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
-      if ($firstRelationship) {
-        // EntityRef field for related contacts.
-        $entityRefParams = [
-          'create' => FALSE,
-          'api' => [
-            'params' => [
-              // This param is watched for in CRM_Groupreg_APIWrappers_Contact::fromApiInput();
-              'isGroupregPrefill' => TRUE,
+      $groupregEventSettings = _groupregGetEventSettings($form->_eventId);
+      if (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings)) {
+        $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+        $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
+        if ($firstRelationship) {
+          // EntityRef field for related contacts.
+          $entityRefParams = [
+            'create' => FALSE,
+            'api' => [
+              'params' => [
+                // This param is watched for in CRM_Groupreg_APIWrappers_Contact::fromApiInput();
+                'isGroupregPrefill' => TRUE,
+              ],
+              'extra' => [
+                // These extra parameters are provided in CRM_Groupreg_APIWrappers_Contact::toApiOutput()
+                // and expected by the select2 change handler in CRM_Event_Form_Registration_AdditionalParticipant-not-self-reg.js
+                'relationship_type_id',
+                'rtype',
+                'relationship_id',
+              ],
             ],
-            'extra' => [
-              // These extra parameters are provided in CRM_Groupreg_APIWrappers_Contact::toApiOutput()
-              // and expected by the select2 change handler in CRM_Event_Form_Registration_AdditionalParticipant-not-self-reg.js
-              'relationship_type_id',
-              'rtype',
-              'relationship_id',
-            ],
-          ],
-        ];
-        $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
+          ];
+          $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
 
-        // Select2 list of relationship types.
-        // TODO: support limitation of these types (and possibly re-labeling of them)
-        // in the UI.
-        $relationshipTypeParams = [
-          'contact_id' => $userCid,
-          'contact_type' => 'Individual',
-          'is_form' => TRUE,
-        ];
-        $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
-        $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+          // Select2 list of relationship types.
+          // TODO: support limitation of these types (and possibly re-labeling of them)
+          // in the UI.
+          $relationshipTypeParams = [
+            'contact_id' => $userCid,
+            'contact_type' => 'Individual',
+            'is_form' => TRUE,
+          ];
+          $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
+          $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
 
-        // Hidden field to hold id of an existing relationship.
-        $form->addElement('hidden', 'groupregRelationshipId', '', ['id' => 'groupregRelationshipId']);
+          // Hidden field to hold id of an existing relationship.
+          $form->addElement('hidden', 'groupregRelationshipId', '', ['id' => 'groupregRelationshipId']);
+
+          CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related.js');
+        }
       }
     }
     $fieldNames = [
@@ -665,3 +681,21 @@ function groupreg_civicrm_navigationMenu(&$menu) {
   ));
   _groupreg_civix_navigationMenu($menu);
 } // */
+
+/**
+ * Shorthand to retrieve settings per event.
+ *
+ */
+function _groupregGetEventSettings($eventId) {
+  static $eventSettings = [];
+  if (!in_array($ventId, $eventSettings)) {
+    // Add fields to manage "primary is attending" for this registration.
+    $eventSettings[$eventId] = \Civi\Api4\GroupregEvent::get()
+      ->addWhere('event_id', '=', $eventId)
+      ->setCheckPermissions(FALSE)
+      ->execute()
+      ->first();
+  }
+  return $eventSettings[$eventId];
+
+}
