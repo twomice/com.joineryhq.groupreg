@@ -24,7 +24,7 @@ function _civicrm_api3_groupreg_price_field_create_spec(&$spec) {
  * @throws API_Exception
  */
 function civicrm_api3_groupreg_price_field_create($params) {
-  return _civicrm_api3_basic_create(_civicrm_api3_get_BAO(__FUNCTION__), $params, GroupregPriceField);
+  return _civicrm_api3_basic_create(_civicrm_api3_get_BAO(__FUNCTION__), $params, 'GroupregPriceField');
 }
 
 /**
@@ -52,5 +52,5 @@ function civicrm_api3_groupreg_price_field_delete($params) {
  * @throws API_Exception
  */
 function civicrm_api3_groupreg_price_field_get($params) {
-  return _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params, FALSE, GroupregPriceField);
+  return _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params, FALSE, 'GroupregPriceField');
 }
