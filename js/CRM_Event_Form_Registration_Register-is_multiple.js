@@ -181,7 +181,8 @@
 
       // Add an identifiable class to all price field divs for nonAttendeeHidden fields.
       for (var i in CRM.vars.groupreg.nonAttendeeHiddenPriceFields) {
-        $('#price_'+ CRM.vars.groupreg.nonAttendeeHiddenPriceFields[i]).closest('div.crm-section').addClass('groupreg-isNonAttendeeHidden');
+        var priceFieldId = CRM.vars.groupreg.nonAttendeeHiddenPriceFields[i];
+        $('#price_'+ priceFieldId +', input[name="price_' + priceFieldId + '"]').closest('div.crm-section').addClass('groupreg-isNonAttendeeHidden');
       }
 
       // If "primary is attending" is "user select":
