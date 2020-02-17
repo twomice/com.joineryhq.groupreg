@@ -12,7 +12,7 @@ function groupreg_civicrm_apiWrappers(&$wrappers, $apiRequest) {
   if (
     strtolower($apiRequest['entity']) == 'contact'
     && strtolower($apiRequest['action']) == 'get'
-    && CRM_Utils_Array::value('isGroupregPrefill', $apiRequest['params'])
+    && CRM_Utils_Array::value('isGroupregPrefill', $apiRequest['params'], 0)
   ) {
     $wrappers[] = new CRM_Groupreg_APIWrappers_Contact();
   }
@@ -361,21 +361,28 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
     ];
   }
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
-    $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
-    $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
-    if ($firstRelationship) {
-      // With no parameters passed in, will create a single contact select
-      $entityRefParams = [
-        'create' => FALSE,
-        'api' => [
-          'params' => [
-            'isGroupregPrefill' => TRUE,
+    if ($form !== NULL) {
+      $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+      $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
+      if ($firstRelationship) {
+        $entityRefParams = [
+          'create' => FALSE,
+          'api' => [
+            'params' => [
+              'isGroupregPrefill' => TRUE,
+            ],
           ],
-        ],
-      ];
-      $fieldNames[] = 'groupregPrefillContact';
-      $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
+        ];
+        $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
+
+        $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id');
+        $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+      }
     }
+    $fieldNames = [
+      'groupregPrefillContact',
+      'groupregRelationshipType',
+    ];
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
     if ($form !== NULL) {

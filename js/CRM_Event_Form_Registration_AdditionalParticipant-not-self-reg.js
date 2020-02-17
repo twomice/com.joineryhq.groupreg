@@ -8,31 +8,32 @@
   CRM.$(function($) {
 
     var updatedContactFields = [];
+
     /**
      * JS change handler for "select a person" entityref field.
      *
      */
     var groupregPrefillContactChange = function groupregPrefillContactChange() {
+      var newVal = $('#groupregPrefillContact').val();
       // Unfreeze any frozen fields, to start with a clean state.
       freezeContactFields(false);
-      
-      var cid = $('#groupregPrefillContact').val();
-      if (!cid) {
-        // If no contact selected, just return.
+      if (!newVal) {
+        // If no contact selected, just return;
         return;
       }
-      // Otherwise, fetch data for the contact.
-      CRM.api3('Contact', 'get', {
-        "sequential": 1,
-        "id": cid,
-        "api.CustomValue.get": {}
-      }).then(function(result) {
-        // Upon returning api fetch, update fiels as possible, and freeze some fields.
-        populateContactFields(result.values[0]);
-        freezeContactFields(true);
-      }, function(error) {
-        console.log('API error: ', error);
-      });
+      else {
+        // Otherwise, fetch data for the contact.
+        CRM.api3('Contact', 'get', {
+          "sequential": 1,
+          "id": newVal,
+          "api.CustomValue.get": {}
+        }).then(function(result) {
+          // Upon returning api fetch, update fields as possible, and freeze some fields.
+          populateContactFields(result.values[0]);
+          freezeContactFields(true);
+        }, function(error) {
+        });
+      }
     };
 
     /**
@@ -50,7 +51,7 @@
           $(selector).val(contact[i]).change();
         }
       }
-      
+
       // Also handle any custom fields that were returned.
       if (
         contact['api.CustomValue.get'] &&
@@ -68,7 +69,7 @@
 
     /**
      * Freeze (or un-freeze) certain fields so they're not editable.
-     * 
+     *
      * @param Boolean doFreeze True for freeze, false  for unfreeze.
      */
     var freezeContactFields = function freezeContactFields(doFreeze) {
@@ -84,7 +85,7 @@
       if (doFreeze == undefined) {
         doFreeze = true;
       }
-      
+
       // Freeze.
       if (doFreeze) {
         for (i in frozenTextFields) {
@@ -109,13 +110,13 @@
 
     /**
      * Freeze (or un-freeze)birth date field.
-     * 
+     *
      * @param Boolean doFreeze True for freeze, false  for unfreeze.
      */
     var freezeBirthDateField = function freezeBirthDateField(doFreeze) {
       var datePicker;
       var clone;
-      
+
       // Set default value of doFreeze.
       if (doFreeze == undefined) {
         doFreeze = true;
@@ -142,9 +143,12 @@
       }
     };
 
-    // Define change handler foe rhw "select a person" field.
-    $('#groupregPrefillContact').change(groupregPrefillContactChange);
-    
+    // Define change handler for the "select a person" field.
+    $('#groupregPrefillContact').on('change', groupregPrefillContactChange);
+    // Go ahead and run that change handler -- sometimes the field has a value
+    // on page load (as in page reload after form validation failure).
+    groupregPrefillContactChange();
+
     // Strip entityref filters so that they dont' confuse user.
     CRM.config.entityRef.filters.Contact = [];
   });
