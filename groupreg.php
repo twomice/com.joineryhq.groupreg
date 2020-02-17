@@ -242,6 +242,17 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         $jsVars['nonAttendeeHiddenPriceFields'] = _groupreg_getNonAttendeeHiddenPriceFields($form->_eventId);
         // Add a hidden field for transmitting names of dynamically hidden fields.
         $form->add('hidden', 'groupregHiddenPriceFields', NULL, array('id' => 'groupregHiddenPriceFields'));
+        if (!empty($jsVars['nonAttendeeHiddenPriceFields'])) {
+          // If any fields can be hidden for non-attending registrant, then it's
+          // possible that the registrant will have no price option selected. This
+          // will generate an error in civicrm: "Select at least one option from Event Fee(s).",
+          // in CRM_Event_Form_Registration::validatePriceSet(). This rather
+          // hackish workaround gets around that requirement by creating a dummy
+          // field that fits the naming requirements of a price field, with a
+          // value of 0, so that it will appear to CRM_Event_Form_Registration::validatePriceSet()
+          // that a price option has been selected.
+          $form->addElement('hidden', 'price_groupRegPlaceholder_olFCYhkSeWjmWekLtWCA', '0', ['id' => 'price_groupRegPlaceholder_olFCYhkSeWjmWekLtWCA']);
+        }
         // Take specific action when form has been submitted; namely, we need to
         // avoid 'required' validation on price fields that were hidden by us.
         // To do this, we need to remove them from the list of 'required' elements
