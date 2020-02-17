@@ -13,20 +13,33 @@
      * JS change handler for "select a person" entityref field.
      *
      */
-    var groupregPrefillContactChange = function groupregPrefillContactChange() {
+    var groupregPrefillContactChange = function groupregPrefillContactChange(e) {
       var newVal = $('#groupregPrefillContact').val();
       // Unfreeze any frozen fields, to start with a clean state.
       freezeContactFields(false);
       if (!newVal) {
         // If no contact selected, just return;
+        $('#groupregRelationshipType').val('').change();
+        $('#groupregRelationshipId').val('').change();
         return;
       }
       else {
-        // Otherwise, fetch data for the contact.
+        // Otherwise, we've selected somebody.
+        // Update relationship type field based on selected data. Every selected
+        // option should have an existing relationship ID and relationship type.
+        if (e != undefined) {
+          var relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
+          $('#groupregRelationshipType').val(relationship_type).change();
+          $('#groupregRelationshipId').val(e.added.extra.relationship_id).change();
+        }
+
+        // Fetch full data for the contact.
         CRM.api3('Contact', 'get', {
           "sequential": 1,
           "id": newVal,
           "api.CustomValue.get": {}
+          // TODO: chain apis to get phone, email, and website data, and map that
+          // to field names like phone_primary_6 or whatever.
         }).then(function(result) {
           // Upon returning api fetch, update fields as possible, and freeze some fields.
           populateContactFields(result.values[0]);

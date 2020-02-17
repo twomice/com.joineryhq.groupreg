@@ -31,7 +31,21 @@ class CRM_Groupreg_APIWrappers_Contact {
    * Munges the result before returning it to the caller.
    */
   public function toApiOutput($apiRequest, $result) {
-    // Nothing to do here.
+    // Append relationship details, since each of these contacts will be related
+    // to the logged in user. (Actually have to fetch those related contacts
+    // again, redundant to self::fromApiInput(), but that's probably fine.)
+    $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+    if ($userCid) {
+      $related = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 25, NULL, NULL, NULL, NULL, TRUE);
+      $related = CRM_Utils_Array::rekey($related, 'cid');
+      foreach ($result['values'] as &$value) {
+        $cid = $value['contact_id'];
+        $relationship = $related[$cid];
+        $value['rtype'] = $relationship['rtype'];
+        $value['relationship_type_id'] = $relationship['relationship_type_id'];
+        $value['relationship_id'] = $relationship['id'];
+      }
+    }
     return $result;
   }
 

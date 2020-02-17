@@ -132,6 +132,57 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           ->execute();
       }
     }
+    // Create relationships if needed, from the list of created participant IDs
+    // in $form->__participantIDS.
+    foreach ($form->getVar('_participantIDS') as $participantId) {
+      // If its the primary participant, just get the contact_id from the participant record.
+      if ($participantId == $primaryPid) {
+        $participant = \Civi\Api4\Participant::get()
+          ->addWhere('id', '=', $participantId)
+          ->execute()
+          ->first();
+        $primaryParticipantCid = $participant['contact_id'];
+        continue;
+      }
+      // For all other participants, we'll create/update a relationship to the
+      // primary participant contact.
+      $participantParams = CRM_Utils_Array::value($participantId, $formValues['params']);
+      // Relationship type was submitted as 'N_a_b' or 'N_b_a' in the form.
+      // We can split it up and use those parts.
+      $relationshipType = CRM_Utils_Array::value('groupregRelationshipType', $participantParams);
+      if ($relationshipType) {
+        // TODO: this should not be. Log an error.
+        list($relationshipTypeId, $rpos1, $rpos2) = explode('_', $relationshipType);
+        $permission_column = "is_permission_{$rpos1}_{$rpos2}";
+
+        // An existing relationship would be recorded in the groupregRelationshipId field
+        // for each additional participant.
+        $relationshipId = CRM_Utils_Array::value('groupregRelationshipId', $participantParams);
+        if ($relationshipId) {
+          // We have an existing relationship; we'll just update.
+          $relationship = \Civi\Api4\Relationship::update()
+            ->addWhere('id', '=', $relationshipId);
+        }
+        else {
+          // We need to create a new relationship.
+          // Get the contact_id from the participant record.
+          $participant = \Civi\Api4\Participant::get()
+            ->addWhere('id', '=', $participantId)
+            ->execute()
+            ->first();
+          $participantCid = $participant['contact_id'];
+          // Use the 'create' api and populate known values.
+          $relationship = \Civi\Api4\Relationship::create()
+            ->addValue('contact_id_' . $rpos1, $primaryParticipantCid)
+            ->addValue('contact_id_' . $rpos2, $participantCid);
+        }
+        // Fill in a few remaining values and save that (new or existing) relationship.
+        $relationship
+          ->addValue('relationship_type_id', $relationshipTypeId)
+          ->addValue($permission_column, 1);
+        $relationship->execute();
+      }
+    }
   }
 }
 
@@ -365,23 +416,44 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
       $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
       if ($firstRelationship) {
+        // EntityRef field for related contacts.
         $entityRefParams = [
           'create' => FALSE,
           'api' => [
             'params' => [
+              // This param is watched for in CRM_Groupreg_APIWrappers_Contact::fromApiInput();
               'isGroupregPrefill' => TRUE,
+            ],
+            'extra' => [
+              // These extra parameters are provided in CRM_Groupreg_APIWrappers_Contact::toApiOutput()
+              // and expected by the select2 change handler in CRM_Event_Form_Registration_AdditionalParticipant-not-self-reg.js
+              'relationship_type_id',
+              'rtype',
+              'relationship_id',
             ],
           ],
         ];
         $form->addEntityRef('groupregPrefillContact', E::ts('Select a person'), $entityRefParams);
 
-        $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id');
+        // Select2 list of relationship types.
+        // TODO: support limitation of these types (and possibly re-labeling of them)
+        // in the UI.
+        $relationshipTypeParams = [
+          'contact_id' => $userCid,
+          'contact_type' => 'Individual',
+          'is_form' => TRUE,
+        ];
+        $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
         $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+
+        // Hidden field to hold id of an existing relationship.
+        $form->addElement('hidden', 'groupregRelationshipId', '', ['id' => 'groupregRelationshipId']);
       }
     }
     $fieldNames = [
       'groupregPrefillContact',
       'groupregRelationshipType',
+      'groupregRelationshipId',
     ];
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
