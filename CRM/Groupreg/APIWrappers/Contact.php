@@ -23,6 +23,10 @@ class CRM_Groupreg_APIWrappers_Contact {
       $related = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 25, NULL, NULL, NULL, NULL, TRUE);
       $relatedCids = CRM_Utils_Array::collect('cid', $related);
       $apiRequest['params']['id'] = ['IN' => $relatedCids];
+      // We're limiting to related contacts, but in fact the api will have its
+      // own limitations, most notably blocking access to contacts if I don't
+      // have 'view all contacts'. So we skip permissions checks.
+      $apiRequest['params']['check_permissions'] = FALSE;
     }
     return $apiRequest;
   }

@@ -1,5 +1,5 @@
 /**
- * This file is only included on Additional Participant form when 
+ * This file is only included on Additional Participant form when
  * a) the event is configured to prompt for related contacts; AND
  * b) the registrant actually has permissioned related contacts.
  */
@@ -37,6 +37,7 @@
         CRM.api3('Contact', 'get', {
           "sequential": 1,
           "id": newVal,
+          "isGroupregPrefill": 1,
           "api.CustomValue.get": {}
           // TODO: chain apis to get phone, email, and website data, and map that
           // to field names like phone_primary_6 or whatever.
