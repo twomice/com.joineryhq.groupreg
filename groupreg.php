@@ -156,7 +156,6 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       // We can split it up and use those parts.
       $relationshipType = CRM_Utils_Array::value('groupregRelationshipType', $participantParams);
       if ($relationshipType) {
-        // TODO: this should not be. Log an error.
         list($relationshipTypeId, $rpos1, $rpos2) = explode('_', $relationshipType);
         $permission_column = "is_permission_{$rpos1}_{$rpos2}";
 
@@ -165,6 +164,8 @@ function groupreg_civicrm_postProcess($formName, &$form) {
         $relationshipId = CRM_Utils_Array::value('groupregRelationshipId', $participantParams);
         if ($relationshipId) {
           // We have an existing relationship; we'll just update.
+          // FIXME: use get api to verify that the given relationshipId is actually
+          // for a relationship between these contacts.
           $relationship = \Civi\Api4\Relationship::update()
             ->addWhere('id', '=', $relationshipId);
         }
@@ -189,6 +190,9 @@ function groupreg_civicrm_postProcess($formName, &$form) {
         $relationship
           ->setCheckPermissions(FALSE)
           ->execute();
+      }
+      else {
+        // TODO: this should not be. Log an error.
       }
     }
   }
