@@ -128,7 +128,8 @@
      * @param Boolean doFreeze True for freeze, false  for unfreeze.
      */
     var freezeBirthDateField = function freezeBirthDateField(doFreeze) {
-      var datePicker;
+      var datePickerField = $('#birth_date').siblings('.hasDatepicker');
+      var datePickerClearLink = datePickerField.siblings('a.crm-clear-link');
       var clone;
 
       // Set default value of doFreeze.
@@ -139,20 +140,20 @@
       if (doFreeze) {
         // Hard to actually freeze a datepicker field. Instead, clone it, then
         // hide it, and make the clone read-only.
-        datePickerField = $('#birth_date').siblings('.hasDatepicker');
         clone = datePickerField.clone();
         clone.attr('readonly', true);
         clone.attr('id', 'groupregDatePickerClone');
         clone.removeClass('hasDatePicker');
         datePickerField.after(clone);
         datePickerField.hide();
+        datePickerClearLink.hide();
       }
       // Un-freeze.
       else {
         // Remove the clone, if any, and display the original datepicker field.
-        datePickerField = $('#birth_date').siblings('.hasDatepicker');
         clone = $('#groupregDatePickerClone');
         datePickerField.show();
+        datePickerClearLink.show();
         clone.remove();
       }
     };
