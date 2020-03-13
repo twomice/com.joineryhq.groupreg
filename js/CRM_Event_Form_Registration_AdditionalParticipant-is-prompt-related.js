@@ -41,7 +41,8 @@
           "api.CustomValue.get": {},
           "api.Phone.get": {},
           "api.Email.get": {},
-          "api.Website.get": {}
+          "api.Website.get": {},
+          "api.Address.get": {}
         }).then(function(result) {
           // Upon returning api fetch, update fields as possible, and freeze some fields.
           populateContactFields(result.values[0]);
@@ -114,6 +115,52 @@
         selector = '#url-' + value.website_type_id;
         if ($(selector).length) {
           $(selector).val(value.url).change();
+        }
+      }
+
+      // Also handle any Address fields that were returned.
+      for (i in contact['api.Address.get'].values) {
+        // If a corresponding form field exists, update its value.
+        var value = contact['api.Address.get'].values[i];
+        var selectorSuffix;
+        var selector;
+        if (value.is_primary) {
+          selectorSuffix = '-Primary';
+        }
+        else {
+          selectorSuffix = '-' + value.location_type_id;
+        }
+        var textFieldNames = [
+          'street_address',
+          'supplemental_address_1',
+          'supplemental_address_2',
+          'supplemental_address_3',
+          'city',
+          'postal_code'
+        ];
+        var idFieldNames = [
+          // TODO: find a way to do country first and then state; this breaks
+          // at the moment, because of chainselect. So instead, we just hope
+          // that country is already set by default.
+          // 'country'
+          'state_province'
+        ];
+        for (var f in textFieldNames) {
+          var fieldName = textFieldNames[f];
+          selector = '#' + fieldName + selectorSuffix;
+          console.log(selector, value[fieldName]);
+          if ($(selector).length) {
+            $(selector).val(value[fieldName]).change();
+          }
+        }
+        for (var f in idFieldNames) {
+          var selectorBase = idFieldNames[f];
+          var fieldName = selectorBase + '_id';
+          selector = '#' + selectorBase + selectorSuffix;
+          console.log(selector, value[fieldName]);
+          if ($(selector).length) {
+            $(selector).val(value[fieldName]).change();
+          }
         }
       }
     };
