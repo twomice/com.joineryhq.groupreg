@@ -38,9 +38,10 @@
           "sequential": 1,
           "id": newVal,
           "isGroupregPrefill": 1,
-          "api.CustomValue.get": {}
-          // TODO: chain apis to get phone, email, and website data, and map that
-          // to field names like phone_primary_6 or whatever.
+          "api.CustomValue.get": {},
+          "api.Phone.get": {},
+          "api.Email.get": {},
+          "api.Website.get": {}
         }).then(function(result) {
           // Upon returning api fetch, update fields as possible, and freeze some fields.
           populateContactFields(result.values[0]);
@@ -67,16 +68,52 @@
       }
 
       // Also handle any custom fields that were returned.
-      if (
-        contact['api.CustomValue.get'] &&
-        contact['api.CustomValue.get'].values
-      )
       for (i in contact['api.CustomValue.get'].values) {
         // If a corresponding form field exists, update its value.
         var value = contact['api.CustomValue.get'].values[i];
-        sselector = '#custom_' + value.id;
+        selector = '#custom_' + value.id;
         if ($(selector).length) {
           $(selector).val(value.latest).change();
+        }
+      }
+
+      // Also handle any phone fields that were returned.
+      for (i in contact['api.Phone.get'].values) {
+        // If a corresponding form field exists, update its value.
+        var value = contact['api.Phone.get'].values[i];
+        if (value.is_primary == '1') {
+          selector = '#phone-Primary-' + value.phone_type_id;
+        }
+        else {
+          selector = '#phone-' + value.location_type_id + '-' + value.phone_type_id;
+        }
+        if ($(selector).length) {
+          $(selector).val(value.phone).change();
+        }
+      }
+
+      // Also handle any Email fields that were returned.
+      for (i in contact['api.Email.get'].values) {
+        // If a corresponding form field exists, update its value.
+        var value = contact['api.Email.get'].values[i];
+        if (value.is_primary == '1') {
+          selector = '#email-Primary';
+        }
+        else {
+          selector = '#email-' + value.location_type_id;
+        }
+        if ($(selector).length) {
+          $(selector).val(value.email).change();
+        }
+      }
+
+      // Also handle any Website fields that were returned.
+      for (i in contact['api.Website.get'].values) {
+        // If a corresponding form field exists, update its value.
+        var value = contact['api.Website.get'].values[i];
+        selector = '#url-' + value.website_type_id;
+        if ($(selector).length) {
+          $(selector).val(value.url).change();
         }
       }
     };
