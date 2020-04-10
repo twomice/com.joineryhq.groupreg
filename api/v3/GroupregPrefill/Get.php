@@ -27,9 +27,7 @@ function _civicrm_api3_groupreg_prefill_Get_spec(&$spec) {
  */
 function civicrm_api3_groupreg_prefill_Get($params) {
   unset($params['return']);
-  dsm(var_export($params, 1), '$params');
   $ret = civicrm_api('Contact', 'getList', $params);
-  dsm($ret, 'ret in '. __FUNCTION__);
   return $ret;
 }
 

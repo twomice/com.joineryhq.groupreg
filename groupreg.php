@@ -50,7 +50,7 @@ function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$e
 }
 
 /**
- * Implements hook_civicrm_buildForm().
+ * Implements hook_civicrm_postProcess().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_postProcess/
  */
