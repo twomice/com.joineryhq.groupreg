@@ -52,6 +52,16 @@
   </field>
 
   <field>
+    <name>is_prompt_related_hop</name>
+    <title>Include individuals related through organizations on Additional Partipant forms?</title>
+    <import>true</import>
+    <export>true</export>
+    <type>boolean</type>
+    <required>true</required>
+    <default>0</default>
+  </field>
+
+  <field>
     <name>is_primary_attending</name>
     <title>Primary participant is attendee</title>
     <type>int unsigned</type>

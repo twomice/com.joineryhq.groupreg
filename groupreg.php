@@ -432,6 +432,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
     if ($form !== NULL) {
       $form->addElement('checkbox', 'is_hide_not_you', E::ts('Hide "Not you" message?'));
       $form->addElement('checkbox', 'is_prompt_related', E::ts('Prompt with related individuals on Additional Partipant forms?'));
+      $form->addElement('checkbox', 'is_prompt_related_hop', E::ts('Include relationships through organizations?'));
       $form->addRadio('is_primary_attending', E::ts('Primary participant is attendee'), [
         CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
@@ -448,6 +449,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
     $fieldNames = [
       'is_hide_not_you',
       'is_prompt_related',
+      'is_prompt_related_hop',
       'is_primary_attending',
       'nonattendee_role_id',
     ];

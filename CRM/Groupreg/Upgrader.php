@@ -56,17 +56,16 @@ class CRM_Groupreg_Upgrader extends CRM_Groupreg_Upgrader_Base {
   }
 
   /**
-   * Example: Run a couple simple queries.
+   * Alter civicrm_groupreg_event table by adding is_prompt_related_hop column.
    *
    * @return TRUE on success
    * @throws Exception
-   *
+   */
   public function upgrade_4200() {
     $this->ctx->log->info('Applying update 4200');
-    CRM_Core_DAO::executeQuery('UPDATE foo SET bar = "whiz"');
-    CRM_Core_DAO::executeQuery('DELETE FROM bang WHERE willy = wonka(2)');
+    CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_groupreg_event` ADD `is_prompt_related_hop` tinyint(4) NOT NULL DEFAULT '0' AFTER `is_prompt_related`");
     return TRUE;
-  } // */
+  }
 
 
   /**
