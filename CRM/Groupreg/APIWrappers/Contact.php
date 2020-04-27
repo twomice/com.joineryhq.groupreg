@@ -27,6 +27,7 @@ class CRM_Groupreg_APIWrappers_Contact {
       // own limitations, most notably blocking access to contacts if I don't
       // have 'view all contacts'. So we skip permissions checks.
       $apiRequest['params']['check_permissions'] = FALSE;
+      $apiRequest['params']['contact_type'] = 'Individual';
     }
     return $apiRequest;
   }
