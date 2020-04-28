@@ -6,6 +6,9 @@ class CRM_Groupreg_Util {
   const primaryIsAteendeeNo = 0;
   const primaryIsAteendeeSelect = 2;
 
+  const promptRelatedIndividual = 1;
+  const promptRelatedOrganization = 2;
+
   /**
    * Get groupreg settings per event.
    *

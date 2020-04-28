@@ -38,13 +38,6 @@ function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$e
           $errors['nonattendee_role_id'] = E::ts('The field "Primary participant is attendee" is not set to "Yes"; you must specify a non-attending role.');
         }
       }
-      // Do not allow both 'is_prompt_related' and 'is_prompt_related_hop' at the same time.
-      if (CRM_Utils_Array::value('is_prompt_related', $form->_submitValues)
-        && CRM_Utils_Array::value('is_prompt_related_hop', $form->_submitValues)
-      ) {
-        $errors['is_prompt_related'] = E::ts('The fields "Prompt for Additional Participant through individual relationships" and  "Prompt for Additional Participant through organization relationships" cannot both be selected; please choose only one.');
-        $errors['is_prompt_related_hop'] = E::ts('The fields "Prompt for Additional Participant through individual relationships" and  "Prompt for Additional Participant through organization relationships" cannot both be selected; please choose only one.');
-      }
     }
   }
 
@@ -486,8 +479,11 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
     if ($form !== NULL) {
       $form->addElement('checkbox', 'is_hide_not_you', E::ts('Hide "Not you" message?'));
-      $form->addElement('checkbox', 'is_prompt_related', E::ts('Prompt for Additional Participant through individual relationships?'));
-      $form->addElement('checkbox', 'is_prompt_related_hop', E::ts('Prompt for Additional Participant through organization relationships?'));
+      $form->addRadio('is_prompt_related', E::ts('Prompt for Additional Participant through relationships?'), [
+        0 => E::ts("No"),
+        CRM_Groupreg_Util::promptRelatedIndividual => E::ts("Yes, through direct relationships to primary participant"),
+        CRM_Groupreg_Util::promptRelatedOrganization => E::ts("Yes, through relationships to related organizations"),
+      ], NULL, '<BR />');
       $form->addRadio('is_primary_attending', E::ts('Primary participant is attendee'), [
         CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
@@ -513,7 +509,6 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
     $fieldNames = [
       'is_hide_not_you',
       'is_prompt_related',
-      'is_prompt_related_hop',
       'is_primary_attending',
       'related_contact_tag_id',
       'nonattendee_role_id',

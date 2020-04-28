@@ -86,8 +86,7 @@ CREATE TABLE `civicrm_groupreg_event` (
      `event_id` int unsigned NOT NULL   COMMENT 'FK to Event',
      `is_hide_not_you` tinyint NOT NULL  DEFAULT 0 ,
      `related_contact_tag_id` int unsigned NULL  DEFAULT NULL COMMENT 'FK to Tag',
-     `is_prompt_related` tinyint NOT NULL  DEFAULT 0 ,
-     `is_prompt_related_hop` tinyint NOT NULL  DEFAULT 0 ,
+     `is_prompt_related` int unsigned NOT NULL  DEFAULT 0 ,
      `is_primary_attending` int unsigned NOT NULL  DEFAULT 1 ,
      `nonattendee_role_id` int unsigned NOT NULL  DEFAULT 1 COMMENT 'Pseudo-FK to civicrm_option_value for participant_role' 
 ,

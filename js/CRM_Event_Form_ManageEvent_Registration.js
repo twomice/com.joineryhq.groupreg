@@ -23,16 +23,6 @@
       }
     };
 
-    // On-change handler for 'is_prompt_related' checkbox.
-    var isPromptRelatedChange = function isPromptRelatedChange() {
-      if ($('input#is_prompt_related').is(':checked')) {
-        $('input[name="is_prompt_related_hop"]').closest('tr').show();
-      }
-      else {
-        $('input[name="is_prompt_related_hop"]').closest('tr').hide();
-      }
-    };
-
     // Give the bhfe elements table an id so we can handle it later.
     $('input#is_hide_not_you').closest('table').attr('id', 'bhfe_table');
 
