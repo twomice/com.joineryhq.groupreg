@@ -62,24 +62,24 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     $fieldNames = _groupreg_buildForm_fields($formName);
 
     // Get the existing settings record for this event, if any.
-    $groupregEventGet = \Civi\Api4\GroupregEvent::get()
-      ->addWhere('event_id', '=', $form->_id)
-      ->setCheckPermissions(FALSE)
-      ->execute()
-      ->first();
+    $eventSettings = CRM_Groupreg_Util::getEventSettings($form->_id);
     // If existing record wasn't found, we'll create.
-    if (empty($groupregEventGet)) {
+    if (empty($eventSettings)) {
       $groupregEvent = \Civi\Api4\GroupregEvent::create()
         ->addValue('event_id', $form->_id);
     }
     // If it was found, we'll just update it.
     else {
       $groupregEvent = \Civi\Api4\GroupregEvent::update()
-        ->addWhere('id', '=', $groupregEventGet['id']);
+        ->addWhere('id', '=', $eventSettings['id']);
     }
     // Whether create or update, add the values of our injected fields.
     foreach ($fieldNames as $fieldName) {
-      $groupregEvent->addValue($fieldName, $form->_submitValues[$fieldName]);
+      $value = $form->_submitValues[$fieldName];
+      if ($fieldName == 'related_contact_tag_id' && $value == -1) {
+        $value = NULL;
+      }
+      $groupregEvent->addValue($fieldName, $value);
     }
     // Create/update settings record.
     $groupregEvent
@@ -118,15 +118,34 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       ->setCheckPermissions(FALSE)
       ->execute();
   }
+  elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
+    //  DEPRECATED: the idea here was to remove the contact_id for all additional participants,
+    //  thereby forcing duplicate contact creation; rationale was that we don't want
+    //  to create permissioned relationships to existing contacts; however, we've solved
+    //  that elsewhere by creating the relationships as inactive and tagging the contacts
+    //  for review. Leaving this code here for now since it represents the results of
+    //  some measurable effort.
+    //    $formParams = $form->get('params');
+    //    end($formParams);
+    //    $lastKey = key($formParams);
+    //    unset($formParams[$lastKey]['contact_id']);
+    //    $form->set('params', $formParams);
+  }
   elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
+    $formParams = $form->getVar('_params');
+    $eventId = CRM_Utils_Array::value('eventID', $formParams);
+    // Only take action if event is configured for groupreg.
+    $eventSettings = CRM_Groupreg_Util::getEventSettings($eventId);
+    if (empty($eventSettings)) {
+      return;
+    }
+
     $primaryPid = $form->getVar('_participantId');
     $formValues = $form->getVar('_values');
     if (!CRM_Utils_Array::value('isRegisteringSelf', $formValues['params'][$primaryPid], 1)) {
-      $formParams = $form->getVar('_params');
-      $eventId = CRM_Utils_Array::value('eventID', $formParams);
 
       // get nonattendee_role_id
-      $groupregEventSettings = _groupregGetEventSettings($eventId);
+      $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($eventId);
       $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventSettings);
       if ($nonAttendeeRoleId && $primaryPid) {
         $participantUpdate = \Civi\Api4\Participant::update()
@@ -139,7 +158,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     // Create relationships if needed, from the list of created participant IDs
     // in $form->__participantIDS.
     foreach ($form->getVar('_participantIDS') as $participantId) {
-      // If its the primary participant, just get the contact_id from the participant record.
+      // If it's the primary participant, just get the contact_id from the participant record.
       if ($participantId == $primaryPid) {
         $participant = \Civi\Api4\Participant::get()
           ->addWhere('id', '=', $participantId)
@@ -170,7 +189,8 @@ function groupreg_civicrm_postProcess($formName, &$form) {
             ->addWhere('id', '=', $relationshipId);
         }
         else {
-          // We need to create a new relationship.
+          // We probably need to create a new relationship, noting that such may
+          // already exist.
           // Get the contact_id from the participant record.
           $participant = \Civi\Api4\Participant::get()
             ->addWhere('id', '=', $participantId)
@@ -181,15 +201,40 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           // Use the 'create' api and populate known values.
           $relationship = \Civi\Api4\Relationship::create()
             ->addValue('contact_id_' . $rpos1, $primaryParticipantCid)
-            ->addValue('contact_id_' . $rpos2, $participantCid);
+            ->addValue('contact_id_' . $rpos2, $participantCid)
+            ->addValue('description', E::ts('Relationship created by Group Registration'))
+            ->addValue($permission_column, 1);
+            // For security, unless specified otherwise, we make all new permissioned relationships inactive,
+            // pending staff review. Contact will be tagged for review.
+            if ($eventSettings['related_contact_tag_id']) {
+              $relationship->addValue('is_active', 0);
+              // This would also mean we're configured to tag such additional
+              // participant contacts for review; do so now.
+              if ($tagId = $eventSettings['related_contact_tag_id']) {
+                $entityTag = \Civi\Api4\EntityTag::create()
+                  ->addValue('tag_id', $tagId)
+                  ->addValue('entity_table', 'civicrm_contact')
+                  ->addValue('entity_id', $participantCid)
+                  ->setCheckPermissions(FALSE)
+                  ->execute();
+              }
+            }
         }
         // Fill in a few remaining values and save that (new or existing) relationship.
         $relationship
-          ->addValue('relationship_type_id', $relationshipTypeId)
-          ->addValue($permission_column, 1);
-        $relationship
-          ->setCheckPermissions(FALSE)
-          ->execute();
+          ->addValue('relationship_type_id', $relationshipTypeId);
+        try {
+          $relationship
+            ->setCheckPermissions(FALSE)
+            ->execute();
+        }
+        catch (Exception $e) {
+          // If the error is because relationship already exists, we can ignore
+          // it. Otherwise, throw it to be handled upstream.
+          if ($e->getMessage() != 'Duplicate Relationship') {
+            throw $e;
+          }
+        }
       }
       else {
         // TODO: this should not be. Log an error.
@@ -212,7 +257,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
 
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
     // Populate default values for our fields.
-    $groupregEventSettings = _groupregGetEventSettings($form->_id);
+    $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_id);
     $defaults = [];
     if (!empty($groupregEventSettings)) {
       foreach ($fieldNames as $fieldName) {
@@ -221,6 +266,10 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     }
     // 'is_primary_attending' defaults to 'yes' even if no settings exist for this event.
     $defaults['is_primary_attending'] = CRM_Utils_Array::value('is_primary_attending', $defaults, 1);
+    // Convert defined NULL to -1 for related_contact_tag_id.
+    if (CRM_Utils_Array::value('related_contact_tag_id', $defaults, 'FALSE') == NULL) {
+      $defaults['related_contact_tag_id'] = -1;
+    }
     $form->setDefaults($defaults);
     // Insert the JS file that will put fields in the right places and handle other on-screen behaviors.
     CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_ManageEvent_Registration.js');
@@ -235,7 +284,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
       $jsVars = [];
       // Add fields to manage "primary is attending" for this registration.
-      $groupregEventSettings = _groupregGetEventSettings($form->_eventId);
+      $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
       $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings, CRM_Groupreg_Util::primaryIsAteendeeYes);
       $isHideNotYou = CRM_Utils_Array::value('is_hide_not_you', $groupregEventSettings);
       if ($isPrimaryAttending == CRM_Groupreg_Util::primaryIsAteendeeSelect) {
@@ -445,18 +494,28 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         ['' => E::ts('- select -')] + CRM_Event_BAO_Participant::buildOptions('participant_role_id'),
         ['class' => 'crm-select2']
       );
+      $tagIdLabel = E::ts('Tag for relationship review on related contacts');
+      $form->addElement(
+        'select',
+        'related_contact_tag_id',
+        $tagIdLabel,
+         ['' => E::ts('- select -')] + CRM_Core_BAO_EntityTag::buildOptions('tag_id') + ['-1' => E::ts('- NONE: ENABLE PERMISSIONED RELATIONSHIPS -')],
+        ['class' => 'crm-select2']
+      );
+      $form->addRule('related_contact_tag_id', E::ts('The field "%1" is required', [1 => $tagIdLabel]), 'required');
     }
     $fieldNames = [
       'is_hide_not_you',
       'is_prompt_related',
       'is_prompt_related_hop',
       'is_primary_attending',
+      'related_contact_tag_id',
       'nonattendee_role_id',
     ];
   }
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     if ($form !== NULL) {
-      $groupregEventSettings = _groupregGetEventSettings($form->_eventId);
+      $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
       if (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings)) {
         $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
         $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
@@ -714,20 +773,3 @@ function groupreg_civicrm_navigationMenu(&$menu) {
   _groupreg_civix_navigationMenu($menu);
 } // */
 
-/**
- * Shorthand to retrieve settings per event.
- *
- */
-function _groupregGetEventSettings($eventId) {
-  static $eventSettings = [];
-  if (!in_array($eventId, $eventSettings)) {
-    // Add fields to manage "primary is attending" for this registration.
-    $eventSettings[$eventId] = \Civi\Api4\GroupregEvent::get()
-      ->addWhere('event_id', '=', $eventId)
-      ->setCheckPermissions(FALSE)
-      ->execute()
-      ->first();
-  }
-  return $eventSettings[$eventId];
-
-}

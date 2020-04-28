@@ -64,6 +64,8 @@ class CRM_Groupreg_Upgrader extends CRM_Groupreg_Upgrader_Base {
   public function upgrade_4200() {
     $this->ctx->log->info('Applying update 4200');
     CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_groupreg_event` ADD `is_prompt_related_hop` tinyint(4) NOT NULL DEFAULT '0' AFTER `is_prompt_related`");
+    CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_groupreg_event` ADD `related_contact_tag_id` int unsigned NULL  DEFAULT NULL COMMENT 'FK to Tag' AFTER `is_hide_not_you`");
+    CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_groupreg_event` ADD CONSTRAINT FK_civicrm_groupreg_event_related_contact_tag_id FOREIGN KEY (`related_contact_tag_id`) REFERENCES `civicrm_tag`(`id`) ON DELETE SET NULL");
     return TRUE;
   }
 

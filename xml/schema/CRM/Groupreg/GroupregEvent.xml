@@ -42,6 +42,23 @@
   </field>
 
   <field>
+    <name>related_contact_tag_id</name>
+    <title>Tag ID to apply to contacts marked as additional participants.</title>
+    <import>true</import>
+    <export>true</export>
+    <type>int unsigned</type>
+    <required>false</required>
+    <default>NULL</default>
+    <comment>FK to Tag</comment>
+  </field>
+  <foreignKey>
+    <name>related_contact_tag_id</name>
+    <table>civicrm_tag</table>
+    <key>id</key>
+    <onDelete>SET NULL</onDelete>
+  </foreignKey>
+  
+  <field>
     <name>is_prompt_related</name>
     <title>Prompt with related individuals on Additional Partipant forms?</title>
     <import>true</import>

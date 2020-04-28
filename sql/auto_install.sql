@@ -85,6 +85,7 @@ CREATE TABLE `civicrm_groupreg_event` (
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Uniq identifier',
      `event_id` int unsigned NOT NULL   COMMENT 'FK to Event',
      `is_hide_not_you` tinyint NOT NULL  DEFAULT 0 ,
+     `related_contact_tag_id` int unsigned NULL  DEFAULT NULL COMMENT 'FK to Tag',
      `is_prompt_related` tinyint NOT NULL  DEFAULT 0 ,
      `is_prompt_related_hop` tinyint NOT NULL  DEFAULT 0 ,
      `is_primary_attending` int unsigned NOT NULL  DEFAULT 1 ,
@@ -93,7 +94,7 @@ CREATE TABLE `civicrm_groupreg_event` (
         PRIMARY KEY (`id`)
  
  
-,          CONSTRAINT FK_civicrm_groupreg_event_event_id FOREIGN KEY (`event_id`) REFERENCES `civicrm_event`(`id`) ON DELETE CASCADE  
+,          CONSTRAINT FK_civicrm_groupreg_event_event_id FOREIGN KEY (`event_id`) REFERENCES `civicrm_event`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_groupreg_event_related_contact_tag_id FOREIGN KEY (`related_contact_tag_id`) REFERENCES `civicrm_tag`(`id`) ON DELETE SET NULL  
 )    ;
 
 -- /*******************************************************
