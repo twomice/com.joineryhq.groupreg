@@ -25,25 +25,31 @@ function groupreg_civicrm_apiWrappers(&$wrappers, $apiRequest) {
  */
 function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
-    // Validating the "online registration" event config form, ensure 'non-attending role'
-    // is specfied if 'primary participant is attending' is anything but "yes".
-
-    // Don't bother with this if we've disabled online registration, or if
-    // 'allow multiple' is false, or if 'primary participant is attending' is
-    // 'yes'
+    // Validating the "online registration" event config form, for groupreg settings.
+    // Don't bother with these validations if we've disabled online registration, or if
+    // 'allow multiple' is false.
     if (
       CRM_Utils_Array::value('is_online_registration', $form->_submitValues)
       && CRM_Utils_Array::value('is_multiple_registrations', $form->_submitValues)
-      && (CRM_Utils_Array::value('is_primary_attending', $form->_submitValues) != CRM_Groupreg_Util::primaryIsAteendeeYes)
     ) {
-      if (empty(CRM_Utils_Array::value('nonattendee_role_id', $form->_submitValues))) {
-        $errors['nonattendee_role_id'] = E::ts('The field "Primary participant is attendee" is not set to "Yes"; you must specify a non-attending role.');
+      // Ensure 'non-attending role' is specfied if 'primary participant is attending' is anything but "yes".
+      if (CRM_Utils_Array::value('is_primary_attending', $form->_submitValues) != CRM_Groupreg_Util::primaryIsAteendeeYes) {
+        if (empty(CRM_Utils_Array::value('nonattendee_role_id', $form->_submitValues))) {
+          $errors['nonattendee_role_id'] = E::ts('The field "Primary participant is attendee" is not set to "Yes"; you must specify a non-attending role.');
+        }
+      }
+      // Do not allow both 'is_prompt_related' and 'is_prompt_related_hop' at the same time.
+      if (CRM_Utils_Array::value('is_prompt_related', $form->_submitValues)
+        && CRM_Utils_Array::value('is_prompt_related_hop', $form->_submitValues)
+      ) {
+        $errors['is_prompt_related'] = E::ts('The fields "Prompt for Additional Participant through individual relationships" and  "Prompt for Additional Participant through organization relationships" cannot both be selected; please choose only one.');
+        $errors['is_prompt_related_hop'] = E::ts('The fields "Prompt for Additional Participant through individual relationships" and  "Prompt for Additional Participant through organization relationships" cannot both be selected; please choose only one.');
       }
     }
   }
 
   if (array_key_exists('groupregTemporarilyUnrequiredFields', $form->_attributes)) {
-    // Re-add tempoarily unrequired fields to the list of required fields, so that
+    // Re-add temporarily unrequired fields to the list of required fields, so that
     // they are by default required when not hidden.
     $form->_required = array_merge($form->_required, $form->_attributes['groupregTemporarilyUnrequiredFields']);
   }
@@ -480,8 +486,8 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   if ($formName == 'CRM_Event_Form_ManageEvent_Registration') {
     if ($form !== NULL) {
       $form->addElement('checkbox', 'is_hide_not_you', E::ts('Hide "Not you" message?'));
-      $form->addElement('checkbox', 'is_prompt_related', E::ts('Prompt with related individuals on Additional Partipant forms?'));
-      $form->addElement('checkbox', 'is_prompt_related_hop', E::ts('Include relationships through organizations?'));
+      $form->addElement('checkbox', 'is_prompt_related', E::ts('Prompt for Additional Participant through individual relationships?'));
+      $form->addElement('checkbox', 'is_prompt_related_hop', E::ts('Prompt for Additional Participant through organization relationships?'));
       $form->addRadio('is_primary_attending', E::ts('Primary participant is attendee'), [
         CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
