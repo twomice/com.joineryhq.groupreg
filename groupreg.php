@@ -374,7 +374,10 @@ function groupreg_civicrm_buildForm($formName, &$form) {
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     $params = $form->getVar('_params');
     // If primary is not attending:
-    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
+    $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
+    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0
+      || (CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings) == CRM_Groupreg_Util::primaryIsAteendeeNo)
+    ) {
       // Change page title and status messages to reflect decremented
       // participant counts.
       $total = CRM_Utils_Array::value('additional_participants', $params[0]);
@@ -434,7 +437,10 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     $params = $form->getVar('_params');
     // If primary is not attending, change status message to reflect decremented
     // participant counts.
-    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0) {
+    $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
+    if (CRM_Utils_Array::value('isRegisteringSelf', $params[0], 1) == 0
+      || (CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings) == CRM_Groupreg_Util::primaryIsAteendeeNo)
+    ) {
       _groupreg_correct_status_messages();
       CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_-decrement-counters.js');
     }
