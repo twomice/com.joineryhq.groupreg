@@ -6,7 +6,9 @@
 
 (function(ts) {
   CRM.$(function($) {
-console.log('groupregOrganizationChange js file loaded');
+    
+    var onloadgrouprePrefillContact = (CRM.vars.groupreg ? CRM.vars.groupreg.grouprePrefillContact : false);
+    
     /**
      * JS change handler for "select a person" entityref field.
      *
@@ -39,6 +41,10 @@ console.log('groupregOrganizationChange js file loaded');
           // Upon returning, add found individuals to the 
           for (var i in result.values) {
             $('#groupregPrefillContact').append('<option value="' + result.values[i].id + '">'+ result.values[i].display_name);
+          }
+          if (onloadgrouprePrefillContact) {
+            $('#groupregPrefillContact').val(onloadgrouprePrefillContact).change();
+            onloadgrouprePrefillContact = false;
           }
         }, function(error) {
         });

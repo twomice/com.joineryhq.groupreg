@@ -611,6 +611,20 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
           'groupregRelationshipId',
         ];
       }
+      // Either way (individual or org-based) we need to refresh the values in the dynamically built select field(s),
+      // if the form is being reloaded, as in "continue"/"go back" buttons.
+      $params = $form->getVar('_params');
+      foreach ($params as $paramKey => $param) {
+        if ($form->getVar('_name') == "Participant_{$paramKey}") {
+          $jsVars = [
+            'groupregOrganization' => CRM_Utils_Array::value('groupregOrganization', $param),
+            'groupregRelationshipId' => CRM_Utils_Array::value('groupregRelationshipId', $param),
+            'groupregRelationshipType' => CRM_Utils_Array::value('groupregRelationshipType', $param),
+            'grouprePrefillContact' => CRM_Utils_Array::value('grouprePrefillContact', $param),
+          ];
+          CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
+        }
+      }
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {

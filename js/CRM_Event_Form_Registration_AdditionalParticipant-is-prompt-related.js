@@ -8,6 +8,8 @@
   CRM.$(function($) {
 
     var updatedContactFields = [];
+    var onloadRelationshipId = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipId : false);
+    var onloadRelationshipType = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipType : false)
 
     /**
      * JS change handler for "select a person" entityref field.
@@ -27,7 +29,7 @@
         // Otherwise, we've selected somebody.
         // Update relationship type field based on selected data. Every selected
         // option should have an existing relationship ID and relationship type.
-        if (e != undefined && e.added.extra != undefined) {
+        if (e != undefined && e.added != undefined && e.added.extra != undefined) {
           var relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
           var relationship_id = e.added.extra.relationship_id;
           $('#groupregRelationshipType').val(relationship_type).change();
@@ -58,6 +60,10 @@
 //              $('#groupregRelationshipType option[value^="' + result.values[0].relationship_type_id + '_"]').attr('selected', true).change();
 //            }
             $('#groupregRelationshipId').val(relationship_id).change();
+          }
+          if (onloadRelationshipId) {
+            $('#groupregRelationshipId').val(onloadRelationshipId).change();
+            onloadRelationshipId = false;
           }
         }, function(error) {
         });
@@ -271,5 +277,11 @@
 
     // Strip entityref filters so that they dont' confuse user.
     CRM.config.entityRef.filters.Contact = [];
+
+    if (onloadRelationshipType) {
+      $('#groupregRelationshipType').val(onloadRelationshipType).change();
+      onloadRelationshipType = false;
+    }
+
   });
 }(CRM.ts('com.joineryhq.groupreg')));
