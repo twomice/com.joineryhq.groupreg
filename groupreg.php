@@ -517,8 +517,8 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     if ($form !== NULL) {
       $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
-      if (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings)) {
-        $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+      $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+      if (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedIndividual) {
         $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
         if ($firstRelationship) {
           // EntityRef field for related contacts.
@@ -545,24 +545,17 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
 
           CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related.js');
         }
-      }
 
-      // Select2 list of relationship types.
-      // TODO: support limitation of these types (and possibly re-labeling of them)
-      // in the UI.
-      $relationshipTypeParams = [
-        'contact_id' => $userCid,
-        'contact_type' => 'Individual',
-        'is_form' => TRUE,
-      ];
-      $relationshipTypeOptions = CRM_Contact_BAO_Relationship::buildOptions('relationship_type_id', NULL, $relationshipTypeParams);
-      $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+        // Select2 list of relationship types.
+        $relationshipTypeOptions = CRM_Groupreg_Util::getRelationshipTypeOptions('Individual');
+        $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+        $fieldNames = [
+          'groupregPrefillContact',
+          'groupregRelationshipType',
+          'groupregRelationshipId',
+        ];
+      }
     }
-    $fieldNames = [
-      'groupregPrefillContact',
-      'groupregRelationshipType',
-      'groupregRelationshipId',
-    ];
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
     if ($form !== NULL) {

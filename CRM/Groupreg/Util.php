@@ -28,4 +28,33 @@ class CRM_Groupreg_Util {
     }
     return $eventSettings[$eventId];
   }
+
+  public static function getRelationshipTypeOptions($otherContactType) {
+    $relationshipTypeOptions = [];
+    $relationshipTypes = \Civi\Api4\RelationshipType::get()
+      ->addWhere('is_active', '=', 1)
+      ->addClause('OR',
+        ['AND', [
+          ['contact_type_a', '=', 'Individual'],
+          ['contact_type_b', '=', $otherContactType]
+        ]],
+        ['AND', [
+          ['contact_type_a', '=', $otherContactType],
+          ['contact_type_b', '=', 'Individual']
+        ]]
+      )
+      ->execute();
+    foreach ($relationshipTypes as $relationshipType) {
+      dsm($relationshipType, '$relationshipType');
+      if ($relationshipType['contact_type_a'] == 'Individual') {
+        $relationshipTypeOptions["{$relationshipType['id']}_a_b"] = $relationshipType['label_a_b'];
+      }
+      if ($relationshipType['contact_type_b'] == 'Individual') {
+        $relationshipTypeOptions["{$relationshipType['id']}_b_a"] = $relationshipType['label_b_a'];
+      }
+    }
+    // TODO: support limitation of these types (and possibly re-labeling of them)
+    // in the UI.
+    return $relationshipTypeOptions;
+  }
 }

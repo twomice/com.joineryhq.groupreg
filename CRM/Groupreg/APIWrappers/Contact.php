@@ -20,7 +20,7 @@ class CRM_Groupreg_APIWrappers_Contact {
     }
     $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
     if ($userCid) {
-      $related = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 25, NULL, NULL, NULL, NULL, TRUE);
+      $related = CRM_Contact_BAO_Relationship::getRelationship($userCid, CRM_Contact_BAO_Relationship::CURRENT, 25, NULL, NULL, NULL, NULL, TRUE);
       $relatedCids = CRM_Utils_Array::collect('cid', $related);
       $apiRequest['params']['id'] = ['IN' => $relatedCids];
       // We're limiting to related contacts, but in fact the api will have its
@@ -41,7 +41,7 @@ class CRM_Groupreg_APIWrappers_Contact {
     // again, redundant to self::fromApiInput(), but that's probably fine.)
     $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
     if ($userCid) {
-      $related = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 25, NULL, NULL, NULL, NULL, TRUE);
+      $related = CRM_Contact_BAO_Relationship::getRelationship($userCid, CRM_Contact_BAO_Relationship::CURRENT, 25, NULL, NULL, NULL, NULL, TRUE);
       $related = CRM_Utils_Array::rekey($related, 'cid');
       foreach ($result['values'] as &$value) {
         $cid = $value['contact_id'];
