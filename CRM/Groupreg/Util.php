@@ -67,7 +67,10 @@ class CRM_Groupreg_Util {
       $relationships = CRM_Contact_BAO_Relationship::getRelationship($cid, CRM_Contact_BAO_Relationship::CURRENT, NULL, NULL, NULL, NULL, NULL, TRUE);
       if ($contactType) {
         foreach ($relationships as $relationshipId => $relationship) {
-          if ($relationship['contact_type'] == $contactType) {
+          if (
+            $relationship['contact_type'] == $contactType
+            && ($relationship["is_permission_{$relationship['rtype']}"] == 1)
+          ) {
             Civi::$statics[__CLASS__][__FUNCTION__][$cid][$contactType] = TRUE;
             break;
           }

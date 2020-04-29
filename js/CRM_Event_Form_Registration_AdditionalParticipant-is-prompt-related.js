@@ -38,8 +38,9 @@
         CRM.api3('Contact', 'get', {
           "sequential": 1,
           "id": newVal,
-          "groupregPrefillContactType": 'Individual',
-          "groupregPrefillRelatedOrgId": $('#groupregOrganization').val(),
+          "isGroupregRelated": 1,
+          "contact_type": 'Individual',
+          "groupregRelatedOrgId": $('#groupregOrganization').val(),
           "api.CustomValue.get": {},
           "api.Phone.get": {},
           "api.Email.get": {},

@@ -12,11 +12,13 @@ function groupreg_civicrm_apiWrappers(&$wrappers, $apiRequest) {
   if (
     strtolower($apiRequest['entity']) == 'contact'
     && strtolower($apiRequest['action']) == 'get'
-    && CRM_Utils_Array::value('groupregPrefillContactType', $apiRequest['params'])
+    && CRM_Utils_Array::value('isGroupregRelated', $apiRequest['params'])
   ) {
-    $wrappers[] = new CRM_Groupreg_APIWrappers_Contact_GroupRegPrefill();
+    $contact_type = CRM_Utils_Array::value('contact_type', $apiRequest['params']);
+    if ($contact_type == 'Individual') {
+      $wrappers[] = new CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated();
+    }
   }
-  $wrappers;
 }
 
 /**
@@ -544,7 +546,8 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
             'api' => [
               'params' => [
                 // This param is watched for in CRM_Groupreg_APIWrappers_Contact::fromApiInput();
-                'groupregPrefillContactType' => 'Individual',
+                'isGroupregRelated' => TRUE,
+                'contact_type' => 'Individual',
               ],
               'extra' => [
                 // These extra parameters are provided in CRM_Groupreg_APIWrappers_Contact::toApiOutput()

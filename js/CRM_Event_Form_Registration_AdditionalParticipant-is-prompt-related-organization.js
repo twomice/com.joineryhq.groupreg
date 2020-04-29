@@ -30,8 +30,9 @@ console.log('groupregOrganizationChange js file loaded');
         // Fetch list of contacts for this org.
         CRM.api3('Contact', 'get', {
           "sequential": 1,
-          "groupregPrefillContactType": 'Individual',
-          "groupregPrefillRelatedOrgId": newVal,
+          "isGroupregRelated": 1,
+          "contact_type": 'Individual',
+          "groupregRelatedOrgId": newVal,
           "options": {"sort":"sort_name"},
           "return": ['id', 'display_name'],
         }).then(function(result) {
