@@ -6,6 +6,7 @@ Provides event registration features for family and friends, even if registering
 
 * Allows registering user to indicate whether they will attend the event or not.
 * Provides list of related contacts as optional pre-filled additional participants.
+* Related contacts may be related directly to the registering user, or (optionally) through a mutually related organization.
 * Records all additional participants as related to user, with relationship type selected by user.
 
 The extension is licensed under [GPL-3.0](LICENSE.txt).
