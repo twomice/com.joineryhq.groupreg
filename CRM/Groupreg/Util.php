@@ -1,6 +1,5 @@
 <?php
 
-
 class CRM_Groupreg_Util {
   const primaryIsAteendeeYes = 1;
   const primaryIsAteendeeNo = 0;
@@ -34,14 +33,18 @@ class CRM_Groupreg_Util {
     $relationshipTypes = \Civi\Api4\RelationshipType::get()
       ->addWhere('is_active', '=', 1)
       ->addClause('OR',
-        ['AND', [
-          ['contact_type_a', '=', 'Individual'],
-          ['contact_type_b', '=', $otherContactType]
-        ]],
-        ['AND', [
-          ['contact_type_a', '=', $otherContactType],
-          ['contact_type_b', '=', 'Individual']
-        ]]
+        [
+          'AND', [
+            ['contact_type_a', '=', 'Individual'],
+            ['contact_type_b', '=', $otherContactType],
+          ],
+        ],
+        [
+          'AND', [
+            ['contact_type_a', '=', $otherContactType],
+            ['contact_type_b', '=', 'Individual'],
+          ],
+        ]
       )
       ->setCheckPermissions(FALSE)
       ->execute();

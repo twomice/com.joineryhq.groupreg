@@ -215,22 +215,22 @@ function groupreg_civicrm_postProcess($formName, &$form) {
             ->addValue('contact_id_' . $rpos2, $participantCid)
             ->addValue('description', E::ts('Relationship created by Group Registration'))
             ->addValue($permission_column, 1);
-            // For security, unless specified otherwise, we make all new permissioned relationships inactive,
-            // pending staff review. Contact will be tagged for review.
-            if ($eventSettings['related_contact_tag_id']) {
-              $relationship->addValue('is_active', 0);
-              // This would also mean we're configured to tag such additional
-              // participant contacts for review; do so now.
-              if ($tagId = $eventSettings['related_contact_tag_id']) {
-                $entityTag = \Civi\Api4\EntityTag::create()
-                  ->addValue('tag_id', $tagId)
-                  ->addValue('entity_table', 'civicrm_contact')
-                  ->addValue('entity_id', $participantCid)
-                  // We need to tag this contact, regardless of our write access to the contact; thus, skip perm checks.
-                  ->setCheckPermissions(FALSE)
-                  ->execute();
-              }
+          // For security, unless specified otherwise, we make all new permissioned relationships inactive,
+          // pending staff review. Contact will be tagged for review.
+          if ($eventSettings['related_contact_tag_id']) {
+            $relationship->addValue('is_active', 0);
+            // This would also mean we're configured to tag such additional
+            // participant contacts for review; do so now.
+            if ($tagId = $eventSettings['related_contact_tag_id']) {
+              $entityTag = \Civi\Api4\EntityTag::create()
+                ->addValue('tag_id', $tagId)
+                ->addValue('entity_table', 'civicrm_contact')
+                ->addValue('entity_id', $participantCid)
+                // We need to tag this contact, regardless of our write access to the contact; thus, skip perm checks.
+                ->setCheckPermissions(FALSE)
+                ->execute();
             }
+          }
         }
         // Fill in a few remaining values and save that (new or existing) relationship.
         $relationship
@@ -575,14 +575,14 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
           'groupregRelationshipId',
         ];
       }
-      elseif (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedOrganization) {        
+      elseif (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedOrganization) {
         if (CRM_Groupreg_Util::hasPermissionedRelatedContact($userCid, 'Organization')) {
           $relatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, NULL, NULL, 'Organization');
           $groupregOrganizationOptions = [];
           foreach ($relatedOrgs as $relatedOrgCid => $relatedOrg) {
             $groupregOrganizationOptions[$relatedOrgCid] = $relatedOrg['name'];
           }
-          $form->add('select', 'groupregOrganization', E::ts('Select an organization'), $groupregOrganizationOptions, TRUE,[
+          $form->add('select', 'groupregOrganization', E::ts('Select an organization'), $groupregOrganizationOptions, TRUE, [
             'class' => 'crm-select2',
             'style' => 'width: 100%;',
             'placeholder' => '- ' . E::ts('select') . '-',
@@ -808,32 +808,3 @@ function groupreg_civicrm_entityTypes(&$entityTypes) {
 function groupreg_civicrm_themes(&$themes) {
   _groupreg_civix_civicrm_themes($themes);
 }
-
-// --- Functions below this ship commented out. Uncomment as required. ---
-
-/**
- * Implements hook_civicrm_preProcess().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_preProcess
- *
-function groupreg_civicrm_preProcess($formName, &$form) {
-
-} // */
-
-/**
- * Implements hook_civicrm_navigationMenu().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
- *
-function groupreg_civicrm_navigationMenu(&$menu) {
-  _groupreg_civix_insert_navigation_menu($menu, 'Mailings', array(
-    'label' => E::ts('New subliminal message'),
-    'name' => 'mailing_subliminal_message',
-    'url' => 'civicrm/mailing/subliminal',
-    'permission' => 'access CiviMail',
-    'operator' => 'OR',
-    'separator' => 0,
-  ));
-  _groupreg_civix_navigationMenu($menu);
-} // */
-

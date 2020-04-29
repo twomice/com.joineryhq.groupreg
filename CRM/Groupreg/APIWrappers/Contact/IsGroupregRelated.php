@@ -86,7 +86,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
     if (
       is_array($id)
       && is_array($id['IN'])
-    ){
+    ) {
       $validIds = array_intersect($id['IN'], $relatedCids);
       return array('IN' => $validIds);
     }
@@ -94,4 +94,5 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
     // If we're still here, return -1; this will give them nothing.
     return -1;
   }
+
 }

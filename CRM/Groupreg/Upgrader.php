@@ -69,7 +69,6 @@ class CRM_Groupreg_Upgrader extends CRM_Groupreg_Upgrader_Base {
     return TRUE;
   }
 
-
   /**
    * Example: Run an external SQL script.
    *

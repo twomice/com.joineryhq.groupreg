@@ -9,8 +9,9 @@
 
     var updatedContactFields = [];
     var onloadRelationshipId = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipId : false);
-    var onloadRelationshipType = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipType : false)
-
+    var onloadRelationshipType = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipType : false);
+    var relationship_type;
+    var relationship_id;
     /**
      * JS change handler for "select a person" entityref field.
      *
@@ -30,8 +31,8 @@
         // Update relationship type field based on selected data. Every selected
         // option should have an existing relationship ID and relationship type.
         if (e != undefined && e.added != undefined && e.added.extra != undefined) {
-          var relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
-          var relationship_id = e.added.extra.relationship_id;
+          relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
+          relationship_id = e.added.extra.relationship_id;
           $('#groupregRelationshipType').val(relationship_type).change();
           $('#groupregRelationshipId').val(relationship_id).change();
         }
@@ -53,8 +54,8 @@
           populateContactFields(result.values[0]);
           freezeContactFields(true);
           if (!relationship_type) {
-            var relationship_type = result.values[0].relationship_type_id + '_' + result.values[0].rtype;
-            var relationship_id = result.values[0].relationship_id;
+            relationship_type = result.values[0].relationship_type_id + '_' + result.values[0].rtype;
+            relationship_id = result.values[0].relationship_id;
             $('#groupregRelationshipType').val(relationship_type).change();
 //            if (!$('#groupregRelationshipType').val()) {
 //              $('#groupregRelationshipType option[value^="' + result.values[0].relationship_type_id + '_"]').attr('selected', true).change();
@@ -77,6 +78,7 @@
     var populateContactFields = function populateContactFields(contact) {
       var i;
       var selector;
+      var value;
       // First handle the native contact fields.
       for(i in contact) {
         // If a corresponding form field exists, update its value.
@@ -89,7 +91,7 @@
       // Also handle any custom fields that were returned.
       for (i in contact['api.CustomValue.get'].values) {
         // If a corresponding form field exists, update its value.
-        var value = contact['api.CustomValue.get'].values[i];
+        value = contact['api.CustomValue.get'].values[i];
         selector = '#custom_' + value.id;
         if ($(selector).length) {
           $(selector).val(value.latest).change();
@@ -99,7 +101,7 @@
       // Also handle any phone fields that were returned.
       for (i in contact['api.Phone.get'].values) {
         // If a corresponding form field exists, update its value.
-        var value = contact['api.Phone.get'].values[i];
+        value = contact['api.Phone.get'].values[i];
         // Phone:
         if (value.is_primary == '1') {
           selector = '#phone-Primary-' + value.phone_type_id;
@@ -125,7 +127,7 @@
       // Also handle any Email fields that were returned.
       for (i in contact['api.Email.get'].values) {
         // If a corresponding form field exists, update its value.
-        var value = contact['api.Email.get'].values[i];
+        value = contact['api.Email.get'].values[i];
         if (value.is_primary == '1') {
           selector = '#email-Primary';
         }
@@ -140,7 +142,7 @@
       // Also handle any Website fields that were returned.
       for (i in contact['api.Website.get'].values) {
         // If a corresponding form field exists, update its value.
-        var value = contact['api.Website.get'].values[i];
+        value = contact['api.Website.get'].values[i];
         selector = '#url-' + value.website_type_id;
         if ($(selector).length) {
           $(selector).val(value.url).change();
@@ -150,9 +152,8 @@
       // Also handle any Address fields that were returned.
       for (i in contact['api.Address.get'].values) {
         // If a corresponding form field exists, update its value.
-        var value = contact['api.Address.get'].values[i];
+        value = contact['api.Address.get'].values[i];
         var selectorSuffix;
-        var selector;
         if (value.is_primary) {
           selectorSuffix = '-Primary';
         }
@@ -174,16 +175,18 @@
           // 'country'
           'state_province'
         ];
-        for (var f in textFieldNames) {
-          var fieldName = textFieldNames[f];
+        var f;
+        var fieldName;
+        for (f in textFieldNames) {
+          fieldName = textFieldNames[f];
           selector = '#' + fieldName + selectorSuffix;
           if ($(selector).length) {
             $(selector).val(value[fieldName]).change();
           }
         }
-        for (var f in idFieldNames) {
+        for (f in idFieldNames) {
           var selectorBase = idFieldNames[f];
-          var fieldName = selectorBase + '_id';
+          fieldName = selectorBase + '_id';
           selector = '#' + selectorBase + selectorSuffix;
           if ($(selector).length) {
             $(selector).val(value[fieldName]).change();

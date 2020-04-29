@@ -10,7 +10,7 @@ use CRM_Groupreg_ExtensionUtil as E;
  * @see https://docs.civicrm.org/dev/en/latest/framework/api-architecture/
  */
 function _civicrm_api3_groupreg_prefill_Get_spec(&$spec) {
-//  $spec['magicword']['api.required'] = 1;
+  //  $spec['magicword']['api.required'] = 1;
 }
 
 /**
@@ -30,7 +30,6 @@ function civicrm_api3_groupreg_prefill_Get($params) {
   $ret = civicrm_api('Contact', 'getList', $params);
   return $ret;
 }
-
 
 /**
  * Get parameters for getlist function.
@@ -57,4 +56,3 @@ function civicrm_api3_groupreg_prefill_Get($params) {
 //function _civicrm_api3_groupreg_prefill_getlist_output($result, $request) {
 //  return _civicrm_api3_contact_getlist_output($result, $request);
 //}
-
