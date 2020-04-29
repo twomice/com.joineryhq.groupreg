@@ -27,17 +27,19 @@
         // Otherwise, we've selected somebody.
         // Update relationship type field based on selected data. Every selected
         // option should have an existing relationship ID and relationship type.
-        if (e != undefined) {
+        if (e != undefined && e.added.extra != undefined) {
           var relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
+          var relationship_id = e.added.extra.relationship_id;
           $('#groupregRelationshipType').val(relationship_type).change();
-          $('#groupregRelationshipId').val(e.added.extra.relationship_id).change();
+          $('#groupregRelationshipId').val(relationship_id).change();
         }
 
         // Fetch full data for the contact.
         CRM.api3('Contact', 'get', {
           "sequential": 1,
           "id": newVal,
-          "isGroupregPrefill": 1,
+          "groupregPrefillContactType": 'Individual',
+          "groupregPrefillRelatedOrgId": $('#groupregOrganization').val(),
           "api.CustomValue.get": {},
           "api.Phone.get": {},
           "api.Email.get": {},
@@ -47,6 +49,15 @@
           // Upon returning api fetch, update fields as possible, and freeze some fields.
           populateContactFields(result.values[0]);
           freezeContactFields(true);
+          if (!relationship_type) {
+            var relationship_type = result.values[0].relationship_type_id + '_' + result.values[0].rtype;
+            var relationship_id = result.values[0].relationship_id;
+            $('#groupregRelationshipType').val(relationship_type).change();
+//            if (!$('#groupregRelationshipType').val()) {
+//              $('#groupregRelationshipType option[value^="' + result.values[0].relationship_type_id + '_"]').attr('selected', true).change();
+//            }
+            $('#groupregRelationshipId').val(relationship_id).change();
+          }
         }, function(error) {
         });
       }
@@ -82,6 +93,7 @@
       for (i in contact['api.Phone.get'].values) {
         // If a corresponding form field exists, update its value.
         var value = contact['api.Phone.get'].values[i];
+        // Phone:
         if (value.is_primary == '1') {
           selector = '#phone-Primary-' + value.phone_type_id;
         }
@@ -90,6 +102,16 @@
         }
         if ($(selector).length) {
           $(selector).val(value.phone).change();
+        }
+        // Phone extension:
+        if (value.is_primary == '1') {
+          selector = '#phone_ext-Primary-' + value.phone_type_id;
+        }
+        else {
+          selector = '#phone_ext-' + value.location_type_id + '-' + value.phone_type_id;
+        }
+        if ($(selector).length) {
+          $(selector).val(value.phone_ext).change();
         }
       }
 
@@ -148,7 +170,6 @@
         for (var f in textFieldNames) {
           var fieldName = textFieldNames[f];
           selector = '#' + fieldName + selectorSuffix;
-          console.log(selector, value[fieldName]);
           if ($(selector).length) {
             $(selector).val(value[fieldName]).change();
           }
@@ -157,7 +178,6 @@
           var selectorBase = idFieldNames[f];
           var fieldName = selectorBase + '_id';
           selector = '#' + selectorBase + selectorSuffix;
-          console.log(selector, value[fieldName]);
           if ($(selector).length) {
             $(selector).val(value[fieldName]).change();
           }

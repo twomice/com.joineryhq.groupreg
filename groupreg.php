@@ -12,10 +12,11 @@ function groupreg_civicrm_apiWrappers(&$wrappers, $apiRequest) {
   if (
     strtolower($apiRequest['entity']) == 'contact'
     && strtolower($apiRequest['action']) == 'get'
-    && CRM_Utils_Array::value('isGroupregPrefill', $apiRequest['params'], 0)
+    && CRM_Utils_Array::value('groupregPrefillContactType', $apiRequest['params'])
   ) {
-    $wrappers[] = new CRM_Groupreg_APIWrappers_Contact();
+    $wrappers[] = new CRM_Groupreg_APIWrappers_Contact_GroupRegPrefill();
   }
+  $wrappers;
 }
 
 /**
@@ -174,6 +175,15 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       // We can split it up and use those parts.
       $relationshipType = CRM_Utils_Array::value('groupregRelationshipType', $participantParams);
       if ($relationshipType) {
+        if (
+          ($participantGroupregOrganizationId = CRM_Utils_Array::value('groupregOrganization', $participantParams))
+          && CRM_Utils_Array::value('is_prompt_related', $eventSettings) == CRM_Groupreg_Util::promptRelatedOrganization
+        ) {
+          $relatedCid = $participantGroupregOrganizationId;
+        }
+        else {
+          $relatedCid = $primaryParticipantCid;
+        }
         list($relationshipTypeId, $rpos1, $rpos2) = explode('_', $relationshipType);
         $permission_column = "is_permission_{$rpos1}_{$rpos2}";
 
@@ -199,7 +209,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           $participantCid = $participant['contact_id'];
           // Use the 'create' api and populate known values.
           $relationship = \Civi\Api4\Relationship::create()
-            ->addValue('contact_id_' . $rpos1, $primaryParticipantCid)
+            ->addValue('contact_id_' . $rpos1, $relatedCid)
             ->addValue('contact_id_' . $rpos2, $participantCid)
             ->addValue('description', E::ts('Relationship created by Group Registration'))
             ->addValue($permission_column, 1);
@@ -519,15 +529,14 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
       $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
       if (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedIndividual) {
-        $firstRelationship = CRM_Contact_BAO_Relationship::getRelationship($userCid, 3, 1, NULL, NULL, NULL, NULL, TRUE);
-        if ($firstRelationship) {
+        if (CRM_Groupreg_Util::hasPermissionedRelatedContact($userCid, 'Individual')) {
           // EntityRef field for related contacts.
           $entityRefParams = [
             'create' => FALSE,
             'api' => [
               'params' => [
                 // This param is watched for in CRM_Groupreg_APIWrappers_Contact::fromApiInput();
-                'isGroupregPrefill' => TRUE,
+                'groupregPrefillContactType' => 'Individual',
               ],
               'extra' => [
                 // These extra parameters are provided in CRM_Groupreg_APIWrappers_Contact::toApiOutput()
@@ -550,6 +559,42 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         $relationshipTypeOptions = CRM_Groupreg_Util::getRelationshipTypeOptions('Individual');
         $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
         $fieldNames = [
+          'groupregPrefillContact',
+          'groupregRelationshipType',
+          'groupregRelationshipId',
+        ];
+      }
+      elseif (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedOrganization) {        
+        if (CRM_Groupreg_Util::hasPermissionedRelatedContact($userCid, 'Organization')) {
+          $relatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, NULL, NULL, 'Organization');
+          $groupregOrganizationOptions = [];
+          foreach ($relatedOrgs as $relatedOrgCid => $relatedOrg) {
+            $groupregOrganizationOptions[$relatedOrgCid] = $relatedOrg['name'];
+          }
+          $form->add('select', 'groupregOrganization', E::ts('Select an organization'), $groupregOrganizationOptions, TRUE,[
+            'class' => 'crm-select2',
+            'style' => 'width: 100%;',
+            'placeholder' => '- ' . E::ts('select') . '-',
+          ]);
+
+          $form->add('select', 'groupregPrefillContact', E::ts('Select an individual'), [], FALSE, [
+            'class' => 'crm-select2',
+            'style' => 'width: 100%;',
+            'placeholder' => '- ' . E::ts('SELECT ORGANIZATION FIRST') . '-',
+          ]);
+
+          // Hidden field to hold id of an existing relationship.
+          $form->addElement('hidden', 'groupregRelationshipId', '', ['id' => 'groupregRelationshipId']);
+
+          CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related.js');
+          CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related-organization.js');
+        }
+
+        // Select2 list of relationship types.
+        $relationshipTypeOptions = CRM_Groupreg_Util::getRelationshipTypeOptions('Organization');
+        $form->add('select', 'groupregRelationshipType', E::ts("Organization's relationship to this person"), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+        $fieldNames = [
+          'groupregOrganization',
           'groupregPrefillContact',
           'groupregRelationshipType',
           'groupregRelationshipId',
