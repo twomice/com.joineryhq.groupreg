@@ -83,7 +83,6 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     }
     // Create/update settings record.
     $groupregEvent
-      ->setCheckPermissions(FALSE)
       ->execute();
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
@@ -96,7 +95,6 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     $fieldId = $form->getVar('_fid');
     $groupregPriceFieldGet = \Civi\Api4\GroupregPriceField::get()
       ->addWhere('price_field_id', '=', $fieldId)
-      ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
     // If existing record wasn't found, we'll create.
@@ -115,7 +113,6 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     }
     // Create/update settings record.
     $groupregPriceField
-      ->setCheckPermissions(FALSE)
       ->execute();
   }
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
@@ -151,6 +148,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
         $participantUpdate = \Civi\Api4\Participant::update()
           ->addWhere('id', '=', $primaryPid)
           ->addValue('role_id', $nonAttendeeRoleId)
+          // We've just created this participant, and we're forcing the role assignment; skipping permission checks is probably needed and safe.
           ->setCheckPermissions(FALSE)
           ->execute();
       }
@@ -162,6 +160,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
       if ($participantId == $primaryPid) {
         $participant = \Civi\Api4\Participant::get()
           ->addWhere('id', '=', $participantId)
+          // We need to get the contact ID for this participant, which may be denied if we don't have 'access civicrm'; thus, skip perm checks.
           ->setCheckPermissions(FALSE)
           ->execute()
           ->first();
@@ -203,6 +202,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           // Get the contact_id from the participant record.
           $participant = \Civi\Api4\Participant::get()
             ->addWhere('id', '=', $participantId)
+            // We need to get the contact ID for this participant, which may be denied if we don't have 'access civicrm'; thus, skip perm checks.
             ->setCheckPermissions(FALSE)
             ->execute()
             ->first();
@@ -224,6 +224,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
                   ->addValue('tag_id', $tagId)
                   ->addValue('entity_table', 'civicrm_contact')
                   ->addValue('entity_id', $participantCid)
+                  // We need to tag this contact, regardless of our write access to the contact; thus, skip perm checks.
                   ->setCheckPermissions(FALSE)
                   ->execute();
               }
@@ -234,6 +235,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
           ->addValue('relationship_type_id', $relationshipTypeId);
         try {
           $relationship
+            // We need to save this relationship, regardless of our write access to the contact; thus, skip perm checks.
             ->setCheckPermissions(FALSE)
             ->execute();
         }
@@ -287,6 +289,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     // Is event set for multiple participant registration?
     $event = \Civi\Api4\Event::get()
       ->addWhere('id', '=', $form->_eventId)
+      // Viewing event config settings usually requires permission "access CiviCRM" or similar; therefore skip perm checks.
       ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
@@ -417,7 +420,6 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     // Populate default values for our fields.
     $groupregPriceField = \Civi\Api4\GroupregPriceField::get()
       ->addWhere('price_field_id', '=', $fieldId)
-      ->setCheckPermissions(FALSE)
       ->execute()
       ->first();
     $defaults = [];
