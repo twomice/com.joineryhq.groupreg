@@ -32,9 +32,6 @@
     // Move all bhfe table rows into the main table aftrer 'max additional participants'
     $('table#bhfe_table tr').insertAfter(trMaxAdditional).addClass('hideIfNotMultiple');
 
-    // Set change hanler for 'is_prompt_related' radios.
-    $('input[name="is_prompt_related"]').change(isPromptRelatedChange);
-
     // Set change hanler for 'is_primary_atending' radios.
     $('input[name="is_primary_attending"]').change(isPrimaryAttendingChange);
 
