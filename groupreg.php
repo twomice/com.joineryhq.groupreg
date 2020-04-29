@@ -257,6 +257,42 @@ function groupreg_civicrm_postProcess($formName, &$form) {
 }
 
 /**
+ * Implements hook_civicrm_alterTemplateFile().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_alterTemplateFile/
+ */
+function groupreg_civicrm_alterTemplateFile($formName, &$form, $context, &$tplName) {
+  // When registering for an event, if the event is configured for related contacts
+  // through organizations, and the user has no permissioned relationships with
+  // organizations, prevent registering at all.
+  if ($formName == 'CRM_Event_Form_Registration_Register') {
+    // Is event set for multiple participant registration?
+    $event = \Civi\Api4\Event::get()
+      ->addWhere('id', '=', $form->_eventId)
+      // Viewing event config settings usually requires permission "access CiviCRM" or similar; therefore skip perm checks.
+      ->setCheckPermissions(FALSE)
+      ->execute()
+      ->first();
+    if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
+      $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
+      $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings, CRM_Groupreg_Util::primaryIsAteendeeYes);
+      $isPromptRelated = CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings);
+
+      if (
+        $isPromptRelated == CRM_Groupreg_Util::promptRelatedOrganization
+      ) {
+        $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
+        if (!CRM_Groupreg_Util::hasPermissionedRelatedContact($userCid, 'Organization')) {
+          $message = E::ts('This event is for contacts in your related organizations, but you do not appear to have any related organizations. To continue with registration, please report this error message to our support team.');
+          CRM_Core_Session::singleton()->setStatus($message, '', 'error');
+          $tplName = 'CRM/Groupreg/Blank.tpl';
+        }
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_civicrm_buildForm().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_buildForm/
