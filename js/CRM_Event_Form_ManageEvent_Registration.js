@@ -23,6 +23,17 @@
       }
     };
 
+    // On-change handler for 'is_prompt_related' radios.
+    var isPromptRelatedChange = function isPromptRelatedChange() {
+      var isPromptRelatedValue = $('input[name="is_prompt_related"]:checked').val();
+      if (isPromptRelatedValue == 0) {
+        $('select#related_contact_tag_id').closest('tr').hide();
+      }
+      else {
+        $('select#related_contact_tag_id').closest('tr').show();
+      }
+    };
+
     // Give the bhfe elements table an id so we can handle it later.
     $('input#is_hide_not_you').closest('table').attr('id', 'bhfe_table');
 
@@ -34,6 +45,9 @@
 
     // Set change hanler for 'is_primary_atending' radios.
     $('input[name="is_primary_attending"]').change(isPrimaryAttendingChange);
+
+    // Set change hanler for 'is_multiple', and go ahead and run it to start with.
+    $('input[name="is_prompt_related"]').change(isPromptRelatedChange);
 
     // Set change hanler for 'is_multiple', and go ahead and run it to start with.
     $('input#is_multiple_registrations').change(isMultipleRegistrationsChange);

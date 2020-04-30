@@ -41,6 +41,13 @@ function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$e
           $errors['nonattendee_role_id'] = E::ts('The field "Primary participant is attendee" is not set to "Yes"; you must specify a non-attending role.');
         }
       }
+
+      // Ensure 'related_contact_tag_id' is specfied if 'is_prompt_related' is anything but "no".
+      if (CRM_Utils_Array::value('is_prompt_related', $form->_submitValues)) {
+        if (empty(CRM_Utils_Array::value('related_contact_tag_id', $form->_submitValues))) {
+          $errors['related_contact_tag_id'] = E::ts('The field "Prompt for Additional Participant through relationships?" is not set to "No"; you must specify a value in the "Tag for relationship review on related contacts" field.');
+        }
+      }
     }
   }
 
@@ -64,16 +71,16 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     $fieldNames = _groupreg_buildForm_fields($formName);
 
     // Get the existing settings record for this event, if any.
-    $eventSettings = CRM_Groupreg_Util::getEventSettings($form->_id);
+    $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_id);
     // If existing record wasn't found, we'll create.
-    if (empty($eventSettings)) {
+    if (empty($groupregEventSettings)) {
       $groupregEvent = \Civi\Api4\GroupregEvent::create()
         ->addValue('event_id', $form->_id);
     }
     // If it was found, we'll just update it.
     else {
       $groupregEvent = \Civi\Api4\GroupregEvent::update()
-        ->addWhere('id', '=', $eventSettings['id']);
+        ->addWhere('id', '=', $groupregEventSettings['id']);
     }
     // Whether create or update, add the values of our injected fields.
     foreach ($fieldNames as $fieldName) {
@@ -134,8 +141,8 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     $formParams = $form->getVar('_params');
     $eventId = CRM_Utils_Array::value('eventID', $formParams);
     // Only take action if event is configured for groupreg.
-    $eventSettings = CRM_Groupreg_Util::getEventSettings($eventId);
-    if (empty($eventSettings)) {
+    $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($eventId);
+    if (empty($groupregEventSettings)) {
       return;
     }
 
@@ -144,7 +151,6 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     if (!CRM_Utils_Array::value('isRegisteringSelf', $formValues['params'][$primaryPid], 1)) {
 
       // get nonattendee_role_id
-      $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($eventId);
       $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventSettings);
       if ($nonAttendeeRoleId && $primaryPid) {
         $participantUpdate = \Civi\Api4\Participant::update()
@@ -157,100 +163,103 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     }
     // Create relationships if needed, from the list of created participant IDs
     // in $form->__participantIDS.
-    foreach ($form->getVar('_participantIDS') as $participantId) {
-      // If it's the primary participant, just get the contact_id from the participant record.
-      if ($participantId == $primaryPid) {
-        $participant = \Civi\Api4\Participant::get()
-          ->addWhere('id', '=', $participantId)
-          // We need to get the contact ID for this participant, which may be denied if we don't have 'access civicrm'; thus, skip perm checks.
-          ->setCheckPermissions(FALSE)
-          ->execute()
-          ->first();
-        $primaryParticipantCid = $participant['contact_id'];
-        continue;
-      }
-      // For all other participants, we'll create/update a relationship to the
-      // primary participant contact.
-      $participantParams = CRM_Utils_Array::value($participantId, $formValues['params']);
-      // Relationship type was submitted as 'N_a_b' or 'N_b_a' in the form.
-      // We can split it up and use those parts.
-      $relationshipType = CRM_Utils_Array::value('groupregRelationshipType', $participantParams);
-      if ($relationshipType) {
-        if (
-          ($participantGroupregOrganizationId = CRM_Utils_Array::value('groupregOrganization', $participantParams))
-          && CRM_Utils_Array::value('is_prompt_related', $eventSettings) == CRM_Groupreg_Util::promptRelatedOrganization
-        ) {
-          $relatedCid = $participantGroupregOrganizationId;
-        }
-        else {
-          $relatedCid = $primaryParticipantCid;
-        }
-        list($relationshipTypeId, $rpos1, $rpos2) = explode('_', $relationshipType);
-        $permission_column = "is_permission_{$rpos1}_{$rpos2}";
-
-        // An existing relationship would be recorded in the groupregRelationshipId field
-        // for each additional participant.
-        $relationshipId = CRM_Utils_Array::value('groupregRelationshipId', $participantParams);
-        if ($relationshipId) {
-          // We have an existing relationship; we'll just update.
-          // FIXME: use get api to verify that the given relationshipId is actually
-          // for a relationship between these contacts.
-          $relationship = \Civi\Api4\Relationship::update()
-            ->addWhere('id', '=', $relationshipId);
-        }
-        else {
-          // We probably need to create a new relationship, noting that such may
-          // already exist.
-          // Get the contact_id from the participant record.
+    if ($isPromptRelated = CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings)) {
+      foreach ($form->getVar('_participantIDS') as $participantId) {
+        // If it's the primary participant, just get the contact_id from the participant record.
+        if ($participantId == $primaryPid) {
           $participant = \Civi\Api4\Participant::get()
             ->addWhere('id', '=', $participantId)
             // We need to get the contact ID for this participant, which may be denied if we don't have 'access civicrm'; thus, skip perm checks.
             ->setCheckPermissions(FALSE)
             ->execute()
             ->first();
-          $participantCid = $participant['contact_id'];
-          // Use the 'create' api and populate known values.
-          $relationship = \Civi\Api4\Relationship::create()
-            ->addValue('contact_id_' . $rpos1, $relatedCid)
-            ->addValue('contact_id_' . $rpos2, $participantCid)
-            ->addValue('description', E::ts('Relationship created by Group Registration'))
-            ->addValue($permission_column, 1);
-          // For security, unless specified otherwise, we make all new permissioned relationships inactive,
-          // pending staff review. Contact will be tagged for review.
-          if ($eventSettings['related_contact_tag_id']) {
-            $relationship->addValue('is_active', 0);
-            // This would also mean we're configured to tag such additional
-            // participant contacts for review; do so now.
-            if ($tagId = $eventSettings['related_contact_tag_id']) {
-              $entityTag = \Civi\Api4\EntityTag::create()
-                ->addValue('tag_id', $tagId)
-                ->addValue('entity_table', 'civicrm_contact')
-                ->addValue('entity_id', $participantCid)
-                // We need to tag this contact, regardless of our write access to the contact; thus, skip perm checks.
-                ->setCheckPermissions(FALSE)
-                ->execute();
+          $primaryParticipantCid = $participant['contact_id'];
+          continue;
+        }
+        // For all other participants, we'll create/update a relationship to the appropriate
+        // contact (if $isPromptRelated is 'individual', then relate to primary participant contact; if
+        // it's 'organization, then relate to the given organization).
+        $participantParams = CRM_Utils_Array::value($participantId, $formValues['params']);
+        // Relationship type was submitted as 'N_a_b' or 'N_b_a' in the form.
+        // We can split it up and use those parts.
+        $relationshipType = CRM_Utils_Array::value('groupregRelationshipType', $participantParams);
+        if ($relationshipType) {
+          if (
+            ($participantGroupregOrganizationId = CRM_Utils_Array::value('groupregOrganization', $participantParams))
+            && $isPromptRelated == CRM_Groupreg_Util::promptRelatedOrganization
+          ) {
+            $relatedCid = $participantGroupregOrganizationId;
+          }
+          else {
+            $relatedCid = $primaryParticipantCid;
+          }
+          list($relationshipTypeId, $rpos1, $rpos2) = explode('_', $relationshipType);
+          $permission_column = "is_permission_{$rpos1}_{$rpos2}";
+
+          // An existing relationship would be recorded in the groupregRelationshipId field
+          // for each additional participant.
+          $relationshipId = CRM_Utils_Array::value('groupregRelationshipId', $participantParams);
+          if ($relationshipId) {
+            // We have an existing relationship; we'll just update.
+            // FIXME: use get api to verify that the given relationshipId is actually
+            // for a relationship between these contacts.
+            $relationship = \Civi\Api4\Relationship::update()
+              ->addWhere('id', '=', $relationshipId);
+          }
+          else {
+            // We probably need to create a new relationship, noting that such may
+            // already exist.
+            // Get the contact_id from the participant record.
+            $participant = \Civi\Api4\Participant::get()
+              ->addWhere('id', '=', $participantId)
+              // We need to get the contact ID for this participant, which may be denied if we don't have 'access civicrm'; thus, skip perm checks.
+              ->setCheckPermissions(FALSE)
+              ->execute()
+              ->first();
+            $participantCid = $participant['contact_id'];
+            // Use the 'create' api and populate known values.
+            $relationship = \Civi\Api4\Relationship::create()
+              ->addValue('contact_id_' . $rpos1, $relatedCid)
+              ->addValue('contact_id_' . $rpos2, $participantCid)
+              ->addValue('description', E::ts('Relationship created by Group Registration'))
+              ->addValue($permission_column, 1);
+            // For security, unless specified otherwise, we make all new permissioned relationships inactive,
+            // pending staff review. Contact will be tagged for review.
+            if ($groupregEventSettings['related_contact_tag_id']) {
+              $relationship->addValue('is_active', 0);
+              // This would also mean we're configured to tag such additional
+              // participant contacts for review; do so now.
+              if ($tagId = $groupregEventSettings['related_contact_tag_id']) {
+                $entityTag = \Civi\Api4\EntityTag::create()
+                  ->addValue('tag_id', $tagId)
+                  ->addValue('entity_table', 'civicrm_contact')
+                  ->addValue('entity_id', $participantCid)
+                  // We need to tag this contact, regardless of our write access to the contact; thus, skip perm checks.
+                  ->setCheckPermissions(FALSE)
+                  ->execute();
+              }
+            }
+          }
+          // Fill in a few remaining values and save that (new or existing) relationship.
+          $relationship
+            ->addValue('relationship_type_id', $relationshipTypeId);
+          try {
+            $relationship
+              // We need to save this relationship, regardless of our write access to the contact; thus, skip perm checks.
+              ->setCheckPermissions(FALSE)
+              ->execute();
+          }
+          catch (Exception $e) {
+            // If the error is because relationship already exists, we can ignore
+            // it. Otherwise, throw it to be handled upstream.
+            if ($e->getMessage() != 'Duplicate Relationship') {
+              throw $e;
             }
           }
         }
-        // Fill in a few remaining values and save that (new or existing) relationship.
-        $relationship
-          ->addValue('relationship_type_id', $relationshipTypeId);
-        try {
-          $relationship
-            // We need to save this relationship, regardless of our write access to the contact; thus, skip perm checks.
-            ->setCheckPermissions(FALSE)
-            ->execute();
+        else {
+          // TODO: this should not be. Log an error.
         }
-        catch (Exception $e) {
-          // If the error is because relationship already exists, we can ignore
-          // it. Otherwise, throw it to be handled upstream.
-          if ($e->getMessage() != 'Duplicate Relationship') {
-            throw $e;
-          }
-        }
-      }
-      else {
-        // TODO: this should not be. Log an error.
       }
     }
   }
@@ -540,6 +549,14 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         CRM_Groupreg_Util::promptRelatedIndividual => E::ts("Yes, through direct relationships to primary participant"),
         CRM_Groupreg_Util::promptRelatedOrganization => E::ts("Yes, through relationships to related organizations"),
       ], NULL, '<BR />');
+      $tagIdLabel = E::ts('Tag for relationship review on related contacts');
+      $form->addElement(
+        'select',
+        'related_contact_tag_id',
+        $tagIdLabel,
+         ['' => E::ts('- select -')] + CRM_Core_BAO_EntityTag::buildOptions('tag_id') + ['-1' => E::ts('- NONE: ENABLE PERMISSIONED RELATIONSHIPS -')],
+        ['class' => 'crm-select2']
+      );
       $form->addRadio('is_primary_attending', E::ts('Primary participant is attendee'), [
         CRM_Groupreg_Util::primaryIsAteendeeYes => E::ts("Yes"),
         CRM_Groupreg_Util::primaryIsAteendeeNo => E::ts("No"),
@@ -552,21 +569,12 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         ['' => E::ts('- select -')] + CRM_Event_BAO_Participant::buildOptions('participant_role_id'),
         ['class' => 'crm-select2']
       );
-      $tagIdLabel = E::ts('Tag for relationship review on related contacts');
-      $form->addElement(
-        'select',
-        'related_contact_tag_id',
-        $tagIdLabel,
-         ['' => E::ts('- select -')] + CRM_Core_BAO_EntityTag::buildOptions('tag_id') + ['-1' => E::ts('- NONE: ENABLE PERMISSIONED RELATIONSHIPS -')],
-        ['class' => 'crm-select2']
-      );
-      $form->addRule('related_contact_tag_id', E::ts('The field "%1" is required', [1 => $tagIdLabel]), 'required');
     }
     $fieldNames = [
       'is_hide_not_you',
       'is_prompt_related',
-      'is_primary_attending',
       'related_contact_tag_id',
+      'is_primary_attending',
       'nonattendee_role_id',
     ];
   }
