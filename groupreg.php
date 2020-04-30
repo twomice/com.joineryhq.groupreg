@@ -632,7 +632,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
             'placeholder' => '- ' . E::ts('select') . '-',
           ]);
 
-          $form->add('select', 'groupregPrefillContact', E::ts('Select an individual'), [], FALSE, [
+          $form->add('select', 'groupregPrefillContact', E::ts('Optional: Select an existing individual in this organization'), [], FALSE, [
             'class' => 'crm-select2',
             'style' => 'width: 100%;',
             'placeholder' => '- ' . E::ts('SELECT ORGANIZATION FIRST') . '-',
