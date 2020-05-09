@@ -100,8 +100,26 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     // Get a list of the injected fields for this form.
     $fieldNames = _groupreg_buildForm_fields($formName);
 
-    // Get the existing settings record for this field, if any.
+    // Determine the field ID from given values
     $fieldId = $form->getVar('_fid');
+    if (empty($fieldId)) {
+      // _fid will be empty on 'create' forms; in that case, the field already
+      // exists by this point in the execution, but the ID is not available in
+      // this scope. We have to get it based on priceField.name, which CiviCRM
+      // requires to be unique system-wide, and which is munged from label, which
+      // is in scope.
+      $fieldLabel = $form->_submitValues['label'];
+      // Use CiviCRM's method of munging field label to field name
+      $fieldName = strtolower(CRM_Utils_String::munge($fieldLabel, '_', 242));
+      // CiviCRM says name must be unique for all prie set fields in the systme, regardless
+      // of price set, so get the price field with this name.
+      $priceFieldGet = civicrm_api3('PriceField', 'get', [
+        'name' => $fieldName,
+      ]);
+      $fieldId = $priceFieldGet['id'];
+    }
+
+    // Get the existing settings record for this field, if any.
     $groupregPriceFieldGet = \Civi\Api4\GroupregPriceField::get()
       ->addWhere('price_field_id', '=', $fieldId)
       ->execute()
