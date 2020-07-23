@@ -1,5 +1,5 @@
 <?php
-use CRM_Groupreg_ExtensionUtil as E;
+// use CRM_Groupreg_ExtensionUtil as E;
 
 /**
  * GroupregPrefill.Get API specification (optional)
