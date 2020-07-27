@@ -1,8 +1,6 @@
 <?php
+use CRM_Groupreg_ExtensionUtil as E;
 
-/**
- * use CRM_Groupreg_ExtensionUtil as E;
- */
 class CRM_Groupreg_BAO_GroupregEvent extends CRM_Groupreg_DAO_GroupregEvent {
 
   /**
