@@ -368,7 +368,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
           '1' => E::ts("Yes, I'm attending"),
           '0' => E::ts("No, I'm only registering other people"),
-        ]);
+        ], NULL, '<br />');
 
         _groupreg_add_bhfe(['isRegisteringSelf'], $form);
       }
