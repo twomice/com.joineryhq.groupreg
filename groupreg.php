@@ -450,7 +450,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // participant counts.
       $total = CRM_Utils_Array::value('additional_participants', $params[0]);
       $participantNo = substr($form->getVar('_name'), 12);
-      CRM_Utils_System::setTitle(ts('Register Participant %1 of %2', array(1 => $participantNo, 2 => $total)));
+      CRM_Utils_System::setTitle(E::ts('Register Participant %1 of %2', array(1 => $participantNo, 2 => $total)));
       _groupreg_correct_status_messages();
 
       // Also hide "skip participant" on first additional participant; this is
