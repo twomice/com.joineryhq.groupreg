@@ -639,7 +639,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       }
       elseif (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedOrganization) {
         if (CRM_Groupreg_Util::hasPermissionedRelatedContact($userCid, 'Organization')) {
-          $relatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, NULL, NULL, 'Organization');
+          $relatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, 'Organization');
           $groupregOrganizationOptions = [];
           foreach ($relatedOrgs as $relatedOrgCid => $relatedOrg) {
             $groupregOrganizationOptions[$relatedOrgCid] = $relatedOrg['name'];

@@ -53,7 +53,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
   private function getBaseCid($apiRequest, $userCid) {
     $baseCid = 0;
     if ($groupregRelatedOrgId = CRM_Utils_Array::value('groupregRelatedOrgId', $apiRequest['params'])) {
-      $userRelatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, NULL, NULL, 'Organization');
+      $userRelatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, 'Organization');
       if (array_key_exists($groupregRelatedOrgId, $userRelatedOrgs)) {
         $baseCid = $groupregRelatedOrgId;
       }
@@ -66,7 +66,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
 
   private function alterId($apiRequest, $baseCid) {
     $contactType = CRM_Utils_Array::value('contact_type', $apiRequest['params']);
-    $related = CRM_Groupreg_Util::getPermissionedContacts($baseCid, NULL, NULL, $contactType);
+    $related = CRM_Groupreg_Util::getPermissionedContacts($baseCid, $contactType);
     $relatedCids = array_keys($related);
     $relatedCids[] = -1;
 
