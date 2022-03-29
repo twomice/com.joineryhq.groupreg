@@ -567,6 +567,9 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
         CRM_Groupreg_Util::promptRelatedIndividual => E::ts("Yes, through direct relationships to primary participant"),
         CRM_Groupreg_Util::promptRelatedOrganization => E::ts("Yes, through relationships to related organizations"),
       ], NULL, '<BR />');
+
+      $form->addElement('checkbox', 'is_require_existing_contact', E::ts('Require selection of existing contact for Additional Participants?'));
+
       $tagIdLabel = E::ts('Tag for relationship review on related contacts');
       $form->addElement(
         'select',
@@ -591,6 +594,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
     $fieldNames = [
       'is_hide_not_you',
       'is_prompt_related',
+      'is_require_existing_contact',
       'related_contact_tag_id',
       'is_primary_attending',
       'nonattendee_role_id',
@@ -598,7 +602,18 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
   }
   elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     if ($form !== NULL) {
+
       $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
+
+      if (!($groupregEventSettings['is_require_existing_contact'] ?? FALSE)) {
+        $groupregPrefillContactRequired = FALSE;
+        $groupregPrefillContactLabelOptional = E::ts('Optional') . ': ';
+      }
+      else {
+        $groupregPrefillContactRequired = TRUE;
+        $groupregPrefillContactLabelOptional = '';
+      }
+
       $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
       if (CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings) == CRM_Groupreg_Util::promptRelatedIndividual) {
         if (CRM_Groupreg_Util::hasPermissionedRelatedContact($userCid, 'Individual')) {
@@ -650,7 +665,8 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
             'placeholder' => '- ' . E::ts('select') . '-',
           ]);
 
-          $form->add('select', 'groupregPrefillContact', E::ts('Optional: Select an existing individual in this organization'), [], FALSE, [
+          $groupregPrefillContactLabel = $groupregPrefillContactLabelOptional . E::ts('Select an existing individual in this organization');
+          $form->add('select', 'groupregPrefillContact', $groupregPrefillContactLabel, [], $groupregPrefillContactRequired, [
             'class' => 'crm-select2',
             'style' => 'width: 100%;',
             'placeholder' => '- ' . E::ts('SELECT ORGANIZATION FIRST') . '-',
@@ -658,6 +674,12 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
 
           // Hidden field to hold id of an existing relationship.
           $form->addElement('hidden', 'groupregRelationshipId', '', ['id' => 'groupregRelationshipId']);
+          // Hidden field to hold id of any selected existing individual related to the organization; we need this
+          // because the groupregPrefillContact <select> field has no options in buildForm, so therefore civicrm
+          // will not store ANY value submitted for that form (remember, options are added to this <select> field
+          // dynamically in JS). But we still need a way to recall which individual was actually selected, so we
+          // need to store that contact_id in form params; therefore, we use this hidden field as storage for that ID.
+          $form->addElement('hidden', 'groupregPrefillContactId', '', ['id' => 'groupregPrefillContactId']);
 
           CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related.js');
           CRM_Core_Resources::singleton()->addScriptFile('com.joineryhq.groupreg', 'js/CRM_Event_Form_Registration_AdditionalParticipant-is-prompt-related-organization.js');
@@ -673,6 +695,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
           'groupregRelationshipId',
         ];
       }
+      $jsVars = [];
       // Either way (individual or org-based) we need to refresh the values in the dynamically built select field(s),
       // if the form is being reloaded, as in "continue"/"go back" buttons.
       $params = $form->getVar('_params');
@@ -682,11 +705,12 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
             'groupregOrganization' => CRM_Utils_Array::value('groupregOrganization', $param),
             'groupregRelationshipId' => CRM_Utils_Array::value('groupregRelationshipId', $param),
             'groupregRelationshipType' => CRM_Utils_Array::value('groupregRelationshipType', $param),
-            'grouprePrefillContact' => CRM_Utils_Array::value('grouprePrefillContact', $param),
+            'groupregPrefillContactId' => CRM_Utils_Array::value('groupregPrefillContactId', $param),
           ];
-          CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
         }
       }
+      $jsVars['isRequreExistingContact'] = (bool) CRM_Utils_Array::value('is_require_existing_contact', $groupregEventSettings);
+      CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {

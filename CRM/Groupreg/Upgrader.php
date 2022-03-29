@@ -70,6 +70,18 @@ class CRM_Groupreg_Upgrader extends CRM_Groupreg_Upgrader_Base {
   }
 
   /**
+   * Alter civicrm_groupreg_event table for new config options.
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_4201() {
+    $this->ctx->log->info('Applying update 4201');
+    CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_groupreg_event` ADD `is_require_existing_contact`  tinyint NOT NULL  DEFAULT 0 COMMENT 'Require selection of existing contact?' AFTER `is_prompt_related`");
+    return TRUE;
+  }
+
+  /**
    * Example: Run an external SQL script.
    *
    * @return TRUE on success

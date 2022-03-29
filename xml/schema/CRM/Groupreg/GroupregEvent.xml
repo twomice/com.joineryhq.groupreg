@@ -69,6 +69,16 @@
   </field>
 
   <field>
+    <name>is_require_existing_contact</name>
+    <title>Require selection of existing contact?</title>
+    <import>true</import>
+    <export>true</export>
+    <type>boolean</type>
+    <required>true</required>
+    <default>0</default>
+  </field>
+
+  <field>
     <name>is_primary_attending</name>
     <title>Primary participant is attendee</title>
     <type>int unsigned</type>

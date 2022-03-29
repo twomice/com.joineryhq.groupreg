@@ -10,8 +10,10 @@
     var updatedContactFields = [];
     var onloadRelationshipId = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipId : false);
     var onloadRelationshipType = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregRelationshipType : false);
+    var isRequireExistingContact = (CRM.vars.groupreg ? CRM.vars.groupreg.isRequreExistingContact : false);
     var relationship_type;
     var relationship_id;
+
     /**
      * JS change handler for "select a person" entityref field.
      *
@@ -24,50 +26,71 @@
         // If no contact selected, just return;
         $('#groupregRelationshipType').val('').change();
         $('#groupregRelationshipId').val('').change();
+        // If isRequireExistingContact, hide the rest of the form until one is selected.
+        if (isRequireExistingContact) {
+          $('div#groupreg_wrapper').hide();
+        }
         return;
       }
       else {
         // Otherwise, we've selected somebody.
-        // Update relationship type field based on selected data. Every selected
-        // option should have an existing relationship ID and relationship type.
-        if (e != undefined && e.added != undefined && e.added.extra != undefined) {
-          relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
-          relationship_id = e.added.extra.relationship_id;
-          $('#groupregRelationshipType').val(relationship_type).change();
-          $('#groupregRelationshipId').val(relationship_id).change();
-        }
+        // Update hidden groupregPrefillContactId with this contact_id.
+        $('#groupregPrefillContactId').val(newVal);
 
-        // Fetch full data for the contact.
-        CRM.api3('Contact', 'get', {
-          "sequential": 1,
-          "id": newVal,
-          "isGroupregRelated": 1,
-          "contact_type": 'Individual',
-          "groupregRelatedOrgId": $('#groupregOrganization').val(),
-          "api.CustomValue.get": {},
-          "api.Phone.get": {},
-          "api.Email.get": {},
-          "api.Website.get": {},
-          "api.Address.get": {}
-        }).then(function(result) {
-          // Upon returning api fetch, update fields as possible, and freeze some fields.
-          populateContactFields(result.values[0]);
-          freezeContactFields(true);
-          if (!relationship_type) {
-            relationship_type = result.values[0].relationship_type_id + '_' + result.values[0].rtype;
-            relationship_id = result.values[0].relationship_id;
+        if (!onloadgroupregPrefillContactId) {
+        // We'll update the contact form fields with live data on this contact,
+        // but only if we don't have an onloadgroupregPrefillContactId. (If we have
+        // that, it means we're coming to this Additional Participant form through
+        // "next" or "continue" buttons, so we expect the contact fields to be already
+        // edited by the user; therefore we would not want to update them with live
+        // contact field values).
+
+
+          // Update relationship type field based on selected data. Every selected
+          // option should have an existing relationship ID and relationship type.
+          if (e != undefined && e.added != undefined && e.added.extra != undefined) {
+            relationship_type = e.added.extra.relationship_type_id + '_' + e.added.extra.rtype;
+            relationship_id = e.added.extra.relationship_id;
             $('#groupregRelationshipType').val(relationship_type).change();
-//            if (!$('#groupregRelationshipType').val()) {
-//              $('#groupregRelationshipType option[value^="' + result.values[0].relationship_type_id + '_"]').attr('selected', true).change();
-//            }
             $('#groupregRelationshipId').val(relationship_id).change();
           }
-          if (onloadRelationshipId) {
-            $('#groupregRelationshipId').val(onloadRelationshipId).change();
-            onloadRelationshipId = false;
-          }
-        }, function(error) {
-        });
+
+          // Fetch full data for the contact.
+          CRM.api3('Contact', 'get', {
+            "sequential": 1,
+            "id": newVal,
+            "isGroupregRelated": 1,
+            "contact_type": 'Individual',
+            "groupregRelatedOrgId": $('#groupregOrganization').val(),
+            "api.CustomValue.get": {},
+            "api.Phone.get": {},
+            "api.Email.get": {},
+            "api.Website.get": {},
+            "api.Address.get": {}
+          }).then(function(result) {
+            // Upon returning api fetch, update fields as possible, and freeze some fields.
+            populateContactFields(result.values[0]);
+            freezeContactFields(true);
+
+            if (!relationship_type) {
+              relationship_type = result.values[0].relationship_type_id + '_' + result.values[0].rtype;
+              relationship_id = result.values[0].relationship_id;
+              $('#groupregRelationshipType').val(relationship_type).change();
+  //            if (!$('#groupregRelationshipType').val()) {
+  //              $('#groupregRelationshipType option[value^="' + result.values[0].relationship_type_id + '_"]').attr('selected', true).change();
+  //            }
+              $('#groupregRelationshipId').val(relationship_id).change();
+            }
+            if (onloadRelationshipId) {
+              $('#groupregRelationshipId').val(onloadRelationshipId).change();
+              onloadRelationshipId = false;
+            }
+          }, function(error) {
+          });
+        }
+
+        // We're sure we have a contact, so we can show the rest of the form if it was hidden earlier.
+        $('div#groupreg_wrapper').show();
       }
     };
 
@@ -210,7 +233,11 @@
       ];
 
       // Set default value of doFreeze.
-      if (doFreeze == undefined) {
+      if (isRequireExistingContact) {
+        // Always freeze fields if we're requiring additional contact.
+        doFreeze = true;
+      }
+      else if (doFreeze == undefined) {
         doFreeze = true;
       }
 
@@ -218,7 +245,8 @@
       if (doFreeze) {
         for (i in frozenTextFields) {
           el = $('#' + frozenTextFields[i]);
-          if (el.val()) {
+          if (el.val() || isRequireExistingContact) {
+            // Even if the field has no value, always freeze it if we're requiring additional contact.
             el.attr('readonly', true);
           }
         }
@@ -271,6 +299,16 @@
         clone.remove();
       }
     };
+
+    // BHFE elements will be created in this form, presented in a table at top of page.
+    // Add ID to bhfe table so we can work with it.
+    $('#groupregPrefillContact').closest('table').attr('id', 'bhfe_table');
+    // Move everything after bhfe_table into a wrapper div.
+    $('table#bhfe_table').after('<div id="groupreg_wrapper"></div>');
+    $('div#groupreg_wrapper').nextAll().appendTo($('div#groupreg_wrapper'));
+    // But move the form buttons outside of that wrapper, so the user can 
+    // still navigate with buttons like 'skip participant' and 'previous'.
+    $('div#groupreg_wrapper').after($('div#crm-submit-buttons'));
 
     // Define change handler for the "select a person" field.
     $('#groupregPrefillContact').on('change', groupregPrefillContactChange);

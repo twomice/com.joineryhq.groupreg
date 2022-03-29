@@ -4,12 +4,12 @@
  * b) the registrant actually has permissioned related contacts.
  */
 
+// Single-use variable storing the contact ID of any individual who was
+// selected if and when this form was submitted earlier in the workflow.
+var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregPrefillContactId : false);
+
 (function(ts) {
   CRM.$(function($) {
-
-    // Single-use variable storing the contact ID of any individual who was
-    // selected if and when this form was submitted earlier in the workflow.
-    var onloadgrouprePrefillContact = (CRM.vars.groupreg ? CRM.vars.groupreg.grouprePrefillContact : false);
 
     /**
      * JS change handler for "select a person" entityref field.
@@ -57,10 +57,10 @@
           // if I've changed the organization selected, and therefore the list of
           // individuals has been rebuilt, we don't want to force the previous
           // individual selection.
-          if (onloadgrouprePrefillContact) {
-            $('#groupregPrefillContact').val(onloadgrouprePrefillContact).change();
+          if (onloadgroupregPrefillContactId) {
+            $('#groupregPrefillContact').val(onloadgroupregPrefillContactId).change();
             // Clear this variable so we don't repeat this again on this page load.
-            onloadgrouprePrefillContact = false;
+            onloadgroupregPrefillContactId = false;
           }
           if (result.values.length) {
             $('#groupregPrefillContact').select2("container").show();
