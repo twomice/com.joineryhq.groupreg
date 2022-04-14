@@ -117,15 +117,25 @@
      * whether registring participant is attendee.
      */
     var rebuildAdditionalParticipantsOptions = function rebuildAdditionalParticipantsOptions() {
-      var val = $('select#additional_participants').val();
+      var originalValue = $('select#additional_participants').val();
       if (isThisPrimaryAttending) {
-        $('select#additional_participants').empty().append(originalAdditionalParticipantsOptions).val(val);
+        $('select#additional_participants').empty().append(originalAdditionalParticipantsOptions).val(originalValue);
       }
       else {
         primeAbridgedAdditionalParticipantsOptions();
-        $('select#additional_participants').empty().append(abridgedAdditionalParticipantsOptions).val(val);
+        $('select#additional_participants').empty().append(abridgedAdditionalParticipantsOptions).val(originalValue);
       }
-      if (! $('select#additional_participants').val()) {
+      // After rebuilding the options in Additional Participants, we may find that
+      // it no longer has any value selected at all; that will happen if originalValue is
+      // no longer an available option -- which AFAIK only happens if you first select
+      // "yes i'm attending" and "1 additional" (so originalValue is ""), and then
+      // switch to "no I'm not attending" (so there's no longer an option with value
+      // of ""). At this point, originalValue = null (and if we take no action here,
+      // the <select> field will show that nothing is selected; this can be confusing
+      // for the user.
+      // In this case, set the value to "-1" which is the value of our additional
+      // "-SELECT-" option.
+      if ($('select#additional_participants').val() === null) {
         $('select#additional_participants').val(-1);
       }
 
