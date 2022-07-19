@@ -42,8 +42,13 @@ function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$e
         }
       }
 
-      // Ensure 'related_contact_tag_id' is specfied if 'is_prompt_related' is anything but "no".
-      if (CRM_Utils_Array::value('is_prompt_related', $form->_submitValues)) {
+      // Ensure 'related_contact_tag_id' is specfied if:
+      //  'is_prompt_related' is anything but "no"; AND
+      //  'is_require_existing_contact'  is not checked.
+      if (
+        CRM_Utils_Array::value('is_prompt_related', $form->_submitValues)
+        && !CRM_Utils_Array::value('is_require_existing_contact', $form->_submitValues, 0)
+      ) {
         if (empty(CRM_Utils_Array::value('related_contact_tag_id', $form->_submitValues))) {
           $errors['related_contact_tag_id'] = E::ts('The field "Prompt for Additional Participant through relationships?" is not set to "No"; you must specify a value in the "Tag for relationship review on related contacts" field.');
         }
