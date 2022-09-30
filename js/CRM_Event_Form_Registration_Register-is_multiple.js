@@ -1,5 +1,4 @@
-(function(ts) {
-    CRM.$(function($) {
+(function($, ts) {
 
     /* Page-level variable indicating whether the registering user is attending.
      * Depending on event settings,this may be forced to false, forced to true,
@@ -257,5 +256,4 @@
     // us time to do all the show/hide stuff above.
     $('form#Register').show();
 
-  });
-}(CRM.ts('groupreg')));
+}(CRM.$, CRM.ts('com.joineryhq.groupreg')));
