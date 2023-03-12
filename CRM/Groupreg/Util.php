@@ -28,8 +28,14 @@ class CRM_Groupreg_Util {
     return $eventSettings[$eventId];
   }
 
-  public static function getRelationshipTypeOptions($otherContactType) {
-    $relationshipTypeOptions = [];
+  /**
+   * For any given contactType, return an api4 result of active relationship types
+   * that can be created between that ContatType an an Individual.
+   *
+   * @param type $otherContactType
+   * @return type
+   */
+  public static function getRelationshipTypesForContactType($otherContactType) {
     $relationshipTypes = \Civi\Api4\RelationshipType::get()
       ->addWhere('is_active', '=', 1)
       ->addClause('OR',
@@ -48,6 +54,20 @@ class CRM_Groupreg_Util {
       )
       ->setCheckPermissions(FALSE)
       ->execute();
+    return CRM_Utils_Array::rekey($relationshipTypes, 'id');
+  }
+
+  /**
+   * Build a list of quickform select options for the 'relationship type' field
+   * on groupreg "additional participants" form.
+   *
+   * @param type $otherContactType
+   * @return type
+   */
+  public static function getRelationshipTypeOptions($otherContactType) {
+    $relationshipTypeOptions = [];
+    $relationshipTypes = self::getRelationshipTypesForContactType($otherContactType);
+
     foreach ($relationshipTypes as $relationshipType) {
       if ($relationshipType['contact_type_a'] == $otherContactType) {
         $relationshipTypeOptions["{$relationshipType['id']}_a_b"] = $relationshipType['label_a_b'];
