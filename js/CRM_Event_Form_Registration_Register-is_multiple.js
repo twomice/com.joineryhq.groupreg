@@ -256,4 +256,19 @@
     // us time to do all the show/hide stuff above.
     $('form#Register').show();
 
+    // Correct buggy behavior in cividiscount: 100% discounts on "some" price fields
+    // can cause the payment info fields to be hidden, even if "other" price fields
+    // still have greater-than-zero amounts.
+    // Reference https://lab.civicrm.org/extensions/cividiscount/-/issues/299
+    // If/when that bug is fixed, we can remove this block.
+    if (typeof CRM.vars.cividiscount !== undefined) {
+      CRM.$('[name^="price_"]').each(function(idx, el){
+        var amount = CRM.$(el).attr('data-amount');
+        if (amount > 0) {
+          CRM.vars.cividiscount.totalAmountZero = false;
+          return false;
+        }
+      });
+    }
+
 }(CRM.$, CRM.ts('com.joineryhq.groupreg')));
