@@ -171,7 +171,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
 
     $primaryPid = $form->getVar('_participantId');
     $formValues = $form->getVar('_values');
-    if (!CRM_Utils_Array::value('isRegisteringSelf', $formValues['params'][$primaryPid], 1)) {
+    if (!CRM_Utils_Array::value('isRegisteringSelf', $formValues['params'][$primaryPid], $groupregEventSettings['is_primary_attending'])) {
 
       // get nonattendee_role_id
       $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventSettings);
