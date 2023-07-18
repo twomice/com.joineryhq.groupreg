@@ -261,7 +261,7 @@
     // still have greater-than-zero amounts.
     // Reference https://lab.civicrm.org/extensions/cividiscount/-/issues/299
     // If/when that bug is fixed, we can remove this block.
-    if (typeof CRM.vars.cividiscount !== undefined) {
+    if (typeof CRM.vars.cividiscount !== 'undefined') {
       CRM.$('[name^="price_"]').each(function(idx, el){
         var amount = CRM.$(el).attr('data-amount');
         if (amount > 0) {

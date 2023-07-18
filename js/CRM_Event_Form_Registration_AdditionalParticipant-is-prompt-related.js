@@ -4,6 +4,10 @@
  * b) the registrant actually has permissioned related contacts.
  */
 
+// Single-use variable storing the contact ID of any individual who was
+// selected if and when this form was submitted earlier in the workflow.
+var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregPrefillContactId : false);
+
 (function(ts) {
   CRM.$(function($) {
 
