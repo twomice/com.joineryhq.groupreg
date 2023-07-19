@@ -108,24 +108,18 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
       var value;
       // First handle the native contact fields.
       for(i in contact) {
-        // If a corresponding form field exists, update its value.
-        selector = '#' + i;
-        if ($(selector).length) {
-          $(selector).val(contact[i]).change();
-        }
+        populateContactField(i, contact[i]);
       }
 
       // Also handle any custom fields that were returned.
       for (i in contact['api.CustomValue.get'].values) {
         // If a corresponding form field exists, update its value.
         value = contact['api.CustomValue.get'].values[i];
-        selector = '#custom_' + value.id;
-        if ($(selector).length) {
-          $(selector).val(value.latest).change();
-        }
+        populateContactField('custom_'+ value.id, value.latest);
       }
 
       // Also handle any phone fields that were returned.
+      // TODO: refactor to use populateContactField().
       for (i in contact['api.Phone.get'].values) {
         // If a corresponding form field exists, update its value.
         value = contact['api.Phone.get'].values[i];
@@ -152,6 +146,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
       }
 
       // Also handle any Email fields that were returned.
+      // TODO: refactor to use populateContactField().
       for (i in contact['api.Email.get'].values) {
         // If a corresponding form field exists, update its value.
         value = contact['api.Email.get'].values[i];
@@ -167,6 +162,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
       }
 
       // Also handle any Website fields that were returned.
+      // TODO: refactor to use populateContactField().
       for (i in contact['api.Website.get'].values) {
         // If a corresponding form field exists, update its value.
         value = contact['api.Website.get'].values[i];
@@ -177,6 +173,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
       }
 
       // Also handle any Address fields that were returned.
+      // TODO: refactor to use populateContactField().
       for (i in contact['api.Address.get'].values) {
         // If a corresponding form field exists, update its value.
         value = contact['api.Address.get'].values[i];
@@ -221,6 +218,54 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
         }
       }
     };
+
+    /**
+     * For a given contact record returned by api contact.get, populate fields
+     * as much as possible.
+     */
+    var populateContactField = function populateContactField(key, value) {
+      var contactFieldFound = false;
+      // If a corresponding form field exists, update its value.
+      if (!contactFieldFound) {
+        // First, radio buttons.
+        selector = 'input[type="radio"][name="' + key + '"][value="' + value + '"]';
+        if ($(selector).length) {
+          contactFieldFound = true;
+          $(selector).prop('checked', 1).change();
+        }
+      }
+      if (!contactFieldFound) {
+        // If no radio button, look for a single-value checkbox.
+        selector = 'input#' + key + '[type="checkbox"]';
+        if ($(selector).length) {
+          contactFieldFound = true;
+          $(selector).prop('checked', true).change();
+        }
+      }
+      if (!contactFieldFound && Array.isArray(value)) {
+        // If still not found, and value is an array, look for a multi-value checkbox.
+        var checkboxSetSelector = 'input[type="checkbox"][id^="' + key + '_"]';
+        if ($(checkboxSetSelector).length) {
+          // We have found a multi-value checkbox set for this field.
+          contactFieldFound = true;
+          // Uncheck all of them, to start with a clean slate:
+          $(checkboxSetSelector).prop('checked', false).change();
+          for (i in value) {
+            // Check each of the checkboxes that matches a value.
+            selector = 'input[type="checkbox"][id="' + key + '_' + value[i] +'"]';
+            $(selector).prop('checked', true).change();
+          }
+        }
+      }
+      if (!contactFieldFound) {
+        // Finally, any type of input.
+        selector = '#' + key;
+        if ($(selector).length) {
+          contactFieldFound = true;
+          $(selector).val(value).change();
+        }
+      }
+    }
 
     /**
      * Freeze (or un-freeze) certain fields so they're not editable.
@@ -310,7 +355,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
     // Move everything after bhfe_table into a wrapper div.
     $('table#bhfe_table').after('<div id="groupreg_wrapper"></div>');
     $('div#groupreg_wrapper').nextAll().appendTo($('div#groupreg_wrapper'));
-    // But move the form buttons outside of that wrapper, so the user can 
+    // But move the form buttons outside of that wrapper, so the user can
     // still navigate with buttons like 'skip participant' and 'previous'.
     $('div#groupreg_wrapper').after($('div#crm-submit-buttons'));
 
