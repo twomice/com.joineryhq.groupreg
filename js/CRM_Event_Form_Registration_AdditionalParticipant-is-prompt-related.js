@@ -239,7 +239,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
         selector = 'input#' + key + '[type="checkbox"]';
         if ($(selector).length) {
           contactFieldFound = true;
-          $(selector).prop('checked', true).change();
+          $(selector).prop('checked', Boolean(value * 1)).change();
         }
       }
       if (!contactFieldFound && Array.isArray(value)) {
