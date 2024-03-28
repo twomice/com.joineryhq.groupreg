@@ -44,50 +44,36 @@
     };
 
     /**
-     * Compile a list of all ':hidden' fields and store that list in the 'groupregHiddenPriceFields'
-     * hidden field, so it will be passed to the form handler.
-     *
-     * @param Event e
-     */
-    var groupregStoreHidden = function groupregStoreHidden(e) {
-      var hiddenFields = [];
-      $('div.groupreg-isNonAttendeeHidden:hidden input, div.groupreg-isNonAttendeeHidden:hidden select, div.groupreg-isNonAttendeeHidden:hidden textarea').each(function (idx, el) {
-        // If this is a select2 base control, it will always be hidden. We only care
-        // if the select2 itself is hidden.
-        if ((el.type == 'select-one' || el.type == 'select-multiple') && $(el).hasClass('crm-select2')) {
-          var select2id = 's2id_' + el.id;
-          if ($('#' + select2id).is(':hidden')) {
-            hiddenFields.push(el.name);
-          }
-        // If this is a datepicker base control, it will always be hidden. We only care
-        // if the datepicker itself is hidden.
-        } else if (
-          el.type == 'text' &&
-          ($(el).hasClass('crm-hidden-date') || el.hasAttribute('data-crm-datepicker'))
-        ) {
-          var datepickerid = $(el).siblings('input.hasDatepicker').attr('id');
-          if ($('#' + datepickerid).is(':hidden')) {
-            hiddenFields.push(el.name);
-          }
-        } else if (el.name.length) {
-          hiddenFields.push(el.name);
-        }
-      });
-      $('#groupregHiddenPriceFields').val(JSON.stringify(hiddenFields));
-    };
-
-    /**
      * Function to show or hide price fields for non-attending registrants.
      */
     var toggleNonAttendeeDisplay = function toggleNonAttendeeDisplay() {
       if (isThisPrimaryAttending) {
+        // Show some fields
         $('.groupreg-isNonAttendeeHidden').show();
+        $('.groupreg-isNonAttendeeHidden.groupreg-original-required').addClass('required');
+        $('.groupreg-isNonAttendeeHidden input.groupreg-original-required').addClass('required');
+        $('.groupreg-isNonAttendeeHidden select.groupreg-original-required').addClass('required');
+
+        // Hide some fields and remove their 'required' class.
         $('.groupreg-isNonAttendeeShow').hide();
+        $('.groupreg-isNonAttendeeShow').removeClass('required');
+        $('.groupreg-isNonAttendeeShow input').removeClass('required');
+        $('.groupreg-isNonAttendeeShow select').removeClass('required');
         cacheAndClearNonAttendeeDisplayValues(false);
       }
       else {
-        $('.groupreg-isNonAttendeeHidden').hide();
+        // Show some fields
         $('.groupreg-isNonAttendeeShow').show();
+        $('.groupreg-isNonAttendeeShow.groupreg-original-required').addClass('required');
+        $('.groupreg-isNonAttendeeShow input.groupreg-original-required').addClass('required');
+        $('.groupreg-isNonAttendeeShow select.groupreg-original-required').addClass('required');
+
+        // Hide some fields and remove their 'required' class.
+        $('.groupreg-isNonAttendeeHidden').hide();
+        $('.groupreg-isNonAttendeeHidden').removeClass('required');
+        $('.groupreg-isNonAttendeeHidden input').removeClass('required');
+        $('.groupreg-isNonAttendeeHidden select').removeClass('required');
+
         cacheAndClearNonAttendeeDisplayValues(true);
       }
       rebuildAdditionalParticipantsOptions(true);
@@ -173,6 +159,13 @@
       }
     };
 
+    //////////////////////////////////////////////////////////////////////////////
+    //  Begin on-load executable code.
+
+    // Mark all required fields as 'originally required'. Later we may remove
+    // the 'required' class, and we need to know whether and when to add it back again.
+    $('.required').addClass('groupreg-original-required');
+
     if (CRM.vars.groupreg.isPrimaryAttending != 1) {
       // These steps are only needed if isPrimaryAttending is something other than
       // "yes", which is the default behavior for civicrm.
@@ -239,8 +232,6 @@
 
       toggleNonAttendeeDisplay();
 
-      // Add submit handler to form, to pass compiled list of hidden fields with submission.
-      $('form#' + CRM.vars.groupreg.formId).submit(groupregStoreHidden);
     }
 
     // //////////////////////////////////////////////////////////////////////////////

@@ -386,8 +386,6 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       if ($isPrimaryAttending != CRM_Groupreg_Util::primaryIsAteendeeYes) {
         // Allow for hiding price fields via JS.
         $jsVars['nonAttendeeHiddenPriceFields'] = _groupreg_getNonAttendeeHiddenPriceFields($form->_eventId);
-        // Add a hidden field for transmitting names of dynamically hidden fields.
-        $form->add('hidden', 'groupregHiddenPriceFields', NULL, array('id' => 'groupregHiddenPriceFields'));
         if (!empty($jsVars['nonAttendeeHiddenPriceFields'])) {
           // If any fields can be hidden for non-attending registrant, then it's
           // possible that the registrant will have no price option selected. This
@@ -399,21 +397,29 @@ function groupreg_civicrm_buildForm($formName, &$form) {
           // that a price option has been selected.
           $form->addElement('hidden', 'price_groupRegPlaceholder_olFCYhkSeWjmWekLtWCA', '0', ['id' => 'price_groupRegPlaceholder_olFCYhkSeWjmWekLtWCA']);
         }
-        // Take specific action when form has been submitted; namely, we need to
-        // avoid 'required' validation on price fields that were hidden by us.
-        // To do this, we need to remove them from the list of 'required' elements
-        // now; we can't do it in our validateForm hook implementation because
-        // the core form validation runs first. Instead we do it here, so that the
-        // core form validation won't enforce that required setting. We'll add
-        // them back to the 'required' list in our own validateForm hook implementation,
-        // so that they will properly default to being required when they aren't
-        // hidden, eg. when the form reloads.
         if ($form->_flagSubmitted) {
-          // Note the value of groupregHiddenPriceFields and temporarily strip them
-          // from the "required" array. (We'll add them back later in hook_civicrm_validateForm().)
-          $hiddenFieldNames = json_decode($form->_submitValues['groupregHiddenPriceFields']);
+          // Take specific action when form has been submitted, if the primary
+          // registrant is not attending; namely, we need to avoid 'required'
+          // validation on price fields that were hidden for this reason.
+          //
+          // To do this, we need to remove them from the list of 'required' elements
+          // now; we can't do it in our validateForm hook implementation because
+          // the core form validation runs first. Instead we do it here, so that the
+          // core form validation won't enforce that required setting. We'll add
+          // them back to the 'required' list in our own validateForm hook implementation,
+          // so that they will properly default to being required when they aren't
+          // hidden, eg. when the form reloads.
+          $isRegisteringSelf = CRM_Utils_Array::value('isRegisteringSelf', $form->_submitValues, $groupregEventSettings['is_primary_attending']);
+          // Only bother with this if primary registrant is not attending.
+          if (!$isRegisteringSelf) {
+            // Note any price fields which we've hidden because primary registrant is not attending.
+            $hiddenPriceFieldNames = [];
+            foreach (_groupreg_getNonAttendeeHiddenPriceFields($form->_eventId) as $hiddenPriceFieldId) {
+              $hiddenPriceFieldNames[] = 'price_' . $hiddenPriceFieldId;
+            }
+          }
           $groupregTemporarilyUnrequiredFields = [];
-          foreach ($hiddenFieldNames as $hiddenFieldName) {
+          foreach ($hiddenPriceFieldNames as $hiddenFieldName) {
             $index = array_search($hiddenFieldName, $form->_required);
             if ($index !== FALSE) {
               unset($form->_required[$index]);
@@ -469,8 +475,9 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     if ($form->_flagSubmitted) {
       $button = substr($form->controller->getButtonName(), -4);
       if ($button == 'skip') {
-        // Note the value of groupregHiddenPriceFields and temporarily strip them
-        // from the "required" array. (We'll add them back later in hook_civicrm_validateForm().)
+        // Temporarily strip the 'groupregRelationshipType' field from the
+        // "required" array (if it's required at all).
+        // (We'll add it back later in hook_civicrm_validateForm().)
         $hiddenFieldNames = ['groupregRelationshipType'];
         $groupregTemporarilyUnrequiredFields = [];
         foreach ($hiddenFieldNames as $hiddenFieldName) {
