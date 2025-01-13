@@ -18,13 +18,20 @@
   <version>1.2.0</version>
   <develStage>stable</develStage>
   <compatibility>
-    <ver>5.0</ver>
+    <ver>5.45</ver>
   </compatibility>
   <comments>Developed by Joinery, with initial development sponsored by Nameless Network.</comments>
   <classloader>
     <psr4 prefix="Civi\" path="Civi"/>
+    <psr0 prefix="CRM_" path="."/>
   </classloader>
   <civix>
     <namespace>CRM/Groupreg</namespace>
+    <format>24.09.1</format>
   </civix>
+  <upgrader>CiviMix\Schema\Groupreg\AutomaticUpgrader</upgrader>
+  <mixins>
+    <mixin>smarty-v2@1.0.3</mixin>
+    <mixin>entity-types-php@2.0.0</mixin>
+  </mixins>
 </extension>
