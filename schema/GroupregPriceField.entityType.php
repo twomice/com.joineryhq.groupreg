@@ -40,7 +40,7 @@ return [
       'required' => TRUE,
       'default' => FALSE,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],

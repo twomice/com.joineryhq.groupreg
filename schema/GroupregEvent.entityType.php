@@ -40,7 +40,7 @@ return [
       'required' => TRUE,
       'default' => FALSE,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],
@@ -52,7 +52,7 @@ return [
       'description' => E::ts('FK to Tag'),
       'default' => NULL,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],
@@ -69,7 +69,7 @@ return [
       'required' => TRUE,
       'default' => 0,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],
@@ -81,7 +81,7 @@ return [
       'required' => TRUE,
       'default' => FALSE,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],
@@ -93,7 +93,7 @@ return [
       'required' => TRUE,
       'default' => 1,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],
@@ -106,7 +106,7 @@ return [
       'description' => E::ts('Pseudo-FK to civicrm_option_value for participant_role'),
       'default' => 1,
       'usage' => [
-        constant(fn() => 'import'),
+        'import',
         'export',
         'duplicate_matching',
       ],
