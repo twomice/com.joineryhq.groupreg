@@ -527,7 +527,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
 }
 
 function _groupreg_add_bhfe(array $elementNames, CRM_Core_Form &$form) {
-  $bhfe = $form->get_template_vars('beginHookFormElements');
+  $bhfe = $form->getTemplateVars('beginHookFormElements');
   if (!$bhfe) {
     $bhfe = [];
   }
