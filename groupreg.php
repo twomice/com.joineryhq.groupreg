@@ -14,7 +14,7 @@ function groupreg_civicrm_apiWrappers(&$wrappers, $apiRequest) {
     && strtolower($apiRequest['action']) == 'get'
     && CRM_Utils_Array::value('isGroupregRelated', $apiRequest['params'])
   ) {
-    $contact_type = CRM_Utils_Array::value('contact_type', $apiRequest['params']);
+    $contact_type = $apiRequest['params']['contact_type'] ?? NULL;
     if ($contact_type == 'Individual') {
       $wrappers[] = new CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated();
     }
@@ -162,7 +162,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Confirm') {
     $formParams = $form->getVar('_params');
-    $eventId = CRM_Utils_Array::value('eventID', $formParams);
+    $eventId = $formParams['eventID'] ?? NULL;
     // Only take action if event is configured for groupreg.
     $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($eventId);
     if (empty($groupregEventSettings)) {
@@ -174,7 +174,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     if (!CRM_Utils_Array::value('isRegisteringSelf', $formValues['params'][$primaryPid], $groupregEventSettings['is_primary_attending'])) {
 
       // get nonattendee_role_id
-      $nonAttendeeRoleId = CRM_Utils_Array::value('nonattendee_role_id', $groupregEventSettings);
+      $nonAttendeeRoleId = $groupregEventSettings['nonattendee_role_id'] ?? NULL;
       if ($nonAttendeeRoleId && $primaryPid) {
         $participantUpdate = \Civi\Api4\Participant::update()
           ->addWhere('id', '=', $primaryPid)
@@ -186,7 +186,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
     }
     // Create relationships if needed, from the list of created participant IDs
     // in $form->__participantIDS.
-    if ($isPromptRelated = CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings)) {
+    if ($isPromptRelated = $groupregEventSettings['is_prompt_related'] ?? NULL) {
       foreach ($form->getVar('_participantIDS') as $participantId) {
         // If it's the primary participant, just get the contact_id from the participant record.
         if ($participantId == $primaryPid) {
@@ -202,13 +202,13 @@ function groupreg_civicrm_postProcess($formName, &$form) {
         // For all other participants, we'll create/update a relationship to the appropriate
         // contact (if $isPromptRelated is 'individual', then relate to primary participant contact; if
         // it's 'organization, then relate to the given organization).
-        $participantParams = CRM_Utils_Array::value($participantId, $formValues['params']);
+        $participantParams = $formValues['params'][$participantId] ?? NULL;
         // Relationship type was submitted as 'N_a_b' or 'N_b_a' in the form.
         // We can split it up and use those parts.
-        $relationshipType = CRM_Utils_Array::value('groupregRelationshipType', $participantParams);
+        $relationshipType = $participantParams['groupregRelationshipType'] ?? NULL;
         if ($relationshipType) {
           if (
-            ($participantGroupregOrganizationId = CRM_Utils_Array::value('groupregOrganization', $participantParams))
+            ($participantGroupregOrganizationId = $participantParams['groupregOrganization'] ?? NULL)
             && $isPromptRelated == CRM_Groupreg_Util::promptRelatedOrganization
           ) {
             $relatedCid = $participantGroupregOrganizationId;
@@ -221,7 +221,7 @@ function groupreg_civicrm_postProcess($formName, &$form) {
 
           // An existing relationship would be recorded in the groupregRelationshipId field
           // for each additional participant.
-          $relationshipId = CRM_Utils_Array::value('groupregRelationshipId', $participantParams);
+          $relationshipId = $participantParams['groupregRelationshipId'] ?? NULL;
           if ($relationshipId) {
             // We have an existing relationship; we'll just update.
             // FIXME: use get api to verify that the given relationshipId is actually
@@ -308,7 +308,7 @@ function groupreg_civicrm_alterTemplateFile($formName, &$form, $context, &$tplNa
     if (CRM_Utils_Array::value('is_multiple_registrations', $event)) {
       $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
       $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings, CRM_Groupreg_Util::primaryIsAteendeeYes);
-      $isPromptRelated = CRM_Utils_Array::value('is_prompt_related', $groupregEventSettings);
+      $isPromptRelated = $groupregEventSettings['is_prompt_related'] ?? NULL;
 
       if (
         $isPromptRelated == CRM_Groupreg_Util::promptRelatedOrganization
@@ -368,7 +368,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // Add fields to manage "primary is attending" for this registration.
       $groupregEventSettings = CRM_Groupreg_Util::getEventSettings($form->_eventId);
       $isPrimaryAttending = CRM_Utils_Array::value('is_primary_attending', $groupregEventSettings, CRM_Groupreg_Util::primaryIsAteendeeYes);
-      $isHideNotYou = CRM_Utils_Array::value('is_hide_not_you', $groupregEventSettings);
+      $isHideNotYou = $groupregEventSettings['is_hide_not_you'] ?? NULL;
       if ($isPrimaryAttending == CRM_Groupreg_Util::primaryIsAteendeeSelect) {
         $form->addRadio('isRegisteringSelf', E::ts('Are you registering yourself for this event?'), [
           '1' => E::ts("Yes, I'm attending"),
@@ -459,7 +459,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
     ) {
       // Change page title and status messages to reflect decremented
       // participant counts.
-      $total = CRM_Utils_Array::value('additional_participants', $params[0]);
+      $total = $params[0]['additional_participants'] ?? NULL;
       $participantNo = substr($form->getVar('_name'), 12);
       CRM_Utils_System::setTitle(E::ts('Register Participant %1 of %2', array(1 => $participantNo, 2 => $total)));
       _groupreg_correct_status_messages();
@@ -714,10 +714,10 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
       foreach ($params as $paramKey => $param) {
         if ($form->getVar('_name') == "Participant_{$paramKey}") {
           $jsVars = [
-            'groupregOrganization' => CRM_Utils_Array::value('groupregOrganization', $param),
-            'groupregRelationshipId' => CRM_Utils_Array::value('groupregRelationshipId', $param),
-            'groupregRelationshipType' => CRM_Utils_Array::value('groupregRelationshipType', $param),
-            'groupregPrefillContactId' => CRM_Utils_Array::value('groupregPrefillContactId', $param),
+            'groupregOrganization' => $param['groupregOrganization'] ?? NULL,
+            'groupregRelationshipId' => $param['groupregRelationshipId'] ?? NULL,
+            'groupregRelationshipType' => $param['groupregRelationshipType'] ?? NULL,
+            'groupregPrefillContactId' => $param['groupregPrefillContactId'] ?? NULL,
           ];
         }
       }

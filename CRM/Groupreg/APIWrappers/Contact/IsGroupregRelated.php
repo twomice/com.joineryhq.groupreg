@@ -8,7 +8,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
   public function fromApiInput($apiRequest) {
     $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
     if ($userCid) {
-      if ($isGroupregRelated = CRM_Utils_Array::value('isGroupregRelated', $apiRequest['params'])) {
+      if ($isGroupregRelated = $apiRequest['params']['isGroupregRelated'] ?? NULL) {
         $baseCid = $this->getBaseCid($apiRequest, $userCid);
         $apiRequest['params']['id'] = $this->alterId($apiRequest, $baseCid);
         // CustomValue.get api requires "administer CiviCRM"; we are accessing
@@ -34,7 +34,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
     // again, which is redundant to self::fromApiInput(), but that's probably fine.)
     $userCid = CRM_Core_Session::singleton()->getLoggedInContactID();
     if ($userCid) {
-      if ($isGroupregRelated = CRM_Utils_Array::value('isGroupregRelated', $apiRequest['params'])) {
+      if ($isGroupregRelated = $apiRequest['params']['isGroupregRelated'] ?? NULL) {
         // Get a list of all current relationships for the baseContact.
         $baseCid = $this->getBaseCid($apiRequest, $userCid);
         $relatedContacts = CRM_Contact_BAO_Relationship::getRelationship($baseCid, CRM_Contact_BAO_Relationship::CURRENT, 25, NULL, NULL, NULL, NULL, TRUE);
@@ -77,7 +77,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
 
   private function getBaseCid($apiRequest, $userCid) {
     $baseCid = 0;
-    if ($groupregRelatedOrgId = CRM_Utils_Array::value('groupregRelatedOrgId', $apiRequest['params'])) {
+    if ($groupregRelatedOrgId = $apiRequest['params']['groupregRelatedOrgId'] ?? NULL) {
       $userRelatedOrgs = CRM_Groupreg_Util::getPermissionedContacts($userCid, 'Organization');
       if (array_key_exists($groupregRelatedOrgId, $userRelatedOrgs)) {
         $baseCid = $groupregRelatedOrgId;
@@ -90,12 +90,12 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
   }
 
   private function alterId($apiRequest, $baseCid) {
-    $contactType = CRM_Utils_Array::value('contact_type', $apiRequest['params']);
+    $contactType = $apiRequest['params']['contact_type'] ?? NULL;
     $related = CRM_Groupreg_Util::getPermissionedContacts($baseCid, $contactType);
     $relatedCids = array_keys($related);
     $relatedCids[] = -1;
 
-    $id = CRM_Utils_Array::value('id', $apiRequest['params']);
+    $id = $apiRequest['params']['id'] ?? NULL;
     // If no ID param is given, just use $relatedCids.
     if (empty($id)) {
       return array('IN' => $relatedCids);
