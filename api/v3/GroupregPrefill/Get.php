@@ -22,8 +22,6 @@ function _civicrm_api3_groupreg_prefill_Get_spec(&$spec) {
  *   API result descriptor
  *
  * @see civicrm_api3_create_success
- *
- * @throws API_Exception
  */
 function civicrm_api3_groupreg_prefill_Get($params) {
   unset($params['return']);
