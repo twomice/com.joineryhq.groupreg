@@ -1,5 +1,4 @@
-(function($, ts) {
-
+var groupregPageLoad = function groupregPageLoad($, ts) {
     /* Page-level variable indicating whether the registering user is attending.
      * Depending on event settings,this may be forced to false, forced to true,
      * or set by user selection. Defaults to true because that's civicrm core
@@ -262,4 +261,18 @@
       });
     }
 
-}(CRM.$, CRM.ts('com.joineryhq.groupreg')));
+};
+
+// We use window.pageshow instead of document.ready because we want the show/hide
+// stuff to work even with the browser back button. But still fall back to
+// document.ready if window.pageshow doesn't exist.
+if (('onpageshow' in window)) {
+  CRM.$(window).on('pageshow', function (event) {
+    groupregPageLoad(CRM.$, CRM.ts('com.joineryhq.groupreg'));
+  });
+}
+else {
+  (function($, ts) {
+    groupregPageLoad($, ts);
+  }(CRM.$, CRM.ts('com.joineryhq.groupreg')));
+}
