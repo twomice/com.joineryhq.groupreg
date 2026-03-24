@@ -190,21 +190,32 @@ var groupregPageLoad = function groupregPageLoad($, ts) {
       if (CRM.vars.groupreg.isPrimaryAttending == 2) {
         // BHFE elements will be created in this form, presented in a table at top of page.
         // Add ID to bhfe table so we can work with it.
-        $('input[type="radio"][name="isRegisteringSelf"]').closest('table').attr('id', 'bhfe_table');
+        $('input[type="radio"][name="isRegisteringSelf"]').closest('table').addClass('groupreg-bhfe-table');
 
-        // Move bhfe elements into main table at top.
+        // Move bhfe elements into new 'crm-public-form-item' section, above existing one.
         var divIsRegisteringSelf = $('div.additional_participants-section').clone();
-        divIsRegisteringSelf.removeClass('additional_participants-section');
-        divIsRegisteringSelf.attr('id', 'divIsRegisteringSelf');
-        divIsRegisteringSelf.css('padding-bottom', '1em');
-        divIsRegisteringSelf.find('div.label').empty();
-        divIsRegisteringSelf.find('div.label').append($('input[type="radio"][name="isRegisteringSelf"]').closest('tr').find('td.label label'));
-        divIsRegisteringSelf.find('div.content').empty();
-        divIsRegisteringSelf.find('div.content').append($('input[type="radio"][name="isRegisteringSelf"]').siblings());
         $('div.additional_participants-section').before(divIsRegisteringSelf);
+        // empty cloned content
+        divIsRegisteringSelf.find('div.label').empty();
+        divIsRegisteringSelf.find('div.content').empty();
+        // remove cloned class and apply new id
+        divIsRegisteringSelf.removeClass('additional_participants-section');
+        divIsRegisteringSelf.addClass('form-layout-compressed');
+        divIsRegisteringSelf.attr('id', 'divIsRegisteringSelf');
+        // mark bhfe isRegisteringSelf tr for later reference.
+        $('table.groupreg-bhfe-table input[type="radio"][name="isRegisteringSelf"]').closest('tr').addClass('isRegisteringSelf');
+        // move isRegisteringSelf bhfe field into cloned section.
+        divIsRegisteringSelf.find('div.label').append($('tr.isRegisteringSelf input[type="radio"][name="isRegisteringSelf"]').closest('tr').find('td.label label'));
+        divIsRegisteringSelf.find('div.content').append($('tr.isRegisteringSelf input[type="radio"][name="isRegisteringSelf"]').closest('td').find('div.crm-option-label-pair'));
+        // remove the bhfe isRegisteringSelf tr
+        $('tr,isRegisteringSelf').remove();
+        
+        divIsRegisteringSelf.css('padding-bottom', '1em');
 
-        // Remove bhfe table; it should be empty now anyway.
-        $('table#bhfe_table').remove();
+        // Remove the bhfe table, but only if it's empty.
+        if ($('table.groupreg-bhfe-table tr').length == 0) {
+          $('table.groupreg-bhfe-table').remove();
+        }
 
         // Hide all other form fields; they need to answer this question first.
         divIsRegisteringSelf.nextAll().hide();
@@ -218,11 +229,6 @@ var groupregPageLoad = function groupregPageLoad($, ts) {
       else if (CRM.vars.groupreg.isPrimaryAttending == 0) {
         // Primary is NOT attending.
         isThisPrimaryAttending = false;
-
-        // Re-label the "(including yourself)" label.
-  //      $('span#noOfParticipants-extra').html('(' + ts('This does not include yourself.') + ')');
-            // Since "parimary is attending" is hard-coded to "No", we must hide
-            // all non-attendee-hidden price fields.
       }
 
       // Assign change handler for "additional_participants".
@@ -272,7 +278,7 @@ if (('onpageshow' in window)) {
   });
 }
 else {
-  (function($, ts) {
+  CRM.$(function($) {
     groupregPageLoad($, ts);
-  }(CRM.$, CRM.ts('com.joineryhq.groupreg')));
+  });
 }

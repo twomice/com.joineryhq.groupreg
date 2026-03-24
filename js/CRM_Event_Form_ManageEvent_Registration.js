@@ -1,4 +1,3 @@
-(function(ts) {
   CRM.$(function($) {
 
     // On-change handler for 'is_multiple' checkbox.
@@ -45,15 +44,27 @@
       }
     };
 
-    // Give the bhfe elements table an id so we can handle it later.
-    $('input#is_hide_not_you').closest('table').attr('id', 'bhfe_table');
+    // Give the bhfe elements table a class so we can idenfify it later.
+    $('input#is_hide_not_you').closest('table').addClass('groupreg-bhfe-table');
 
-    var trMaxAdditional = $('select#max_additional_participants').closest('tr');
-    // remove the 'nowrap' class because it breaks the layout.
-    $('table#bhfe_table td').removeClass('nowrap');
-    // Move all bhfe table rows into the main table aftrer 'max additional participants'
-    $('table#bhfe_table tr').insertAfter(trMaxAdditional).addClass('hideIfNotMultiple');
-
+    var trMaxAdditional = $('select#max_additional_participants').closest('tr').next();
+    for (var i in CRM.vars.groupreg.bhfe_fields) {
+      // Move all of our bhfe fields into that table after that row.
+      tr = cj('table.groupreg-bhfe-table td [for^="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
+      if (!tr.length) {
+        // No tr found? Might be a radio or otherwise make use of name="$fieldName".
+        tr = cj('table.groupreg-bhfe-table td input[name="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
+      }
+      tr.find('td:eq(0)').addClass('label');
+      tr.find('td').removeClass('nowrap');
+      tr.insertBefore(trMaxAdditional).addClass('hideIfNotMultiple');
+      
+    }    
+    // Remove the bhfe table, but only if it's empty.
+    if (cj('table.groupreg-bhfe-table tr').length == 0) {
+      cj('table.groupreg-bhfe-table').remove();
+    }
+    
     // Add tr classes to facilitate show/hide:
     $('input#is_require_existing_contact').closest('tr').addClass('hideIfNotIsPromptRelated');
     $('select#related_contact_tag_id').closest('tr').addClass('hideIfNotIsPromptRelated');
@@ -70,9 +81,4 @@
     // Set change handler for 'is_multiple', and go ahead and run it to start with.
     $('input#is_multiple_registrations').change(isMultipleRegistrationsChange);
     isMultipleRegistrationsChange();
-
-    // Remove the bhfe table, which should be empty by now.
-    $('table#bhfe_table').remove();
-
   });
-}(CRM.ts('com.joineryhq.groupreg')));

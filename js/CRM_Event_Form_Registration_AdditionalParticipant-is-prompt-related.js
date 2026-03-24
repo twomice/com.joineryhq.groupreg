@@ -8,7 +8,6 @@
 // selected if and when this form was submitted earlier in the workflow.
 var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.groupregPrefillContactId : false);
 
-(function(ts) {
   CRM.$(function($) {
 
     var updatedContactFields = [];
@@ -250,7 +249,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
           contactFieldFound = true;
           // Uncheck all of them, to start with a clean slate:
           $(checkboxSetSelector).prop('checked', false).change();
-          for (i in value) {
+          for (var i in value) {
             // Check each of the checkboxes that matches a value.
             selector = 'input[type="checkbox"][id="' + key + '_' + value[i] +'"]';
             $(selector).prop('checked', true).change();
@@ -265,7 +264,7 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
           $(selector).val(value).change();
         }
       }
-    }
+    };
 
     /**
      * Freeze (or un-freeze) certain fields so they're not editable.
@@ -350,14 +349,47 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
     };
 
     // BHFE elements will be created in this form, presented in a table at top of page.
-    // Add ID to bhfe table so we can work with it.
-    $('#groupregPrefillContact').closest('table').attr('id', 'bhfe_table');
-    // Move everything after bhfe_table into a wrapper div.
-    $('table#bhfe_table').after('<div id="groupreg_wrapper"></div>');
+    // We'll move our fields into their own (new) container elements.
+    // Add class to bhfe table for later reference
+    $('#groupregPrefillContact').closest('table').addClass('groupreg-bhfe-table');
+
+    // Move everything after bhfe-table into a wrapper div. (This may be hidden
+    // later, e.g. if it's required to select an existing related contact.)
+    $('table.groupreg-bhfe-table').after('<div id="groupreg_wrapper"></div>');
     $('div#groupreg_wrapper').nextAll().appendTo($('div#groupreg_wrapper'));
     // But move the form buttons outside of that wrapper, so the user can
     // still navigate with buttons like 'skip participant' and 'previous'.
     $('div#groupreg_wrapper').after($('div#crm-submit-buttons'));
+    
+    // Create a basic template container based on an existing form item.
+    var baseContainer = $('div.crm-section.form-item').first().clone();
+    baseContainer.removeClass();
+    baseContainer.addClass('crm-section form-item');
+    baseContainer.find('div.label').empty();
+    baseContainer.find('div.content').empty();
+    // Loop through our fields and create form items for each.
+    var promptRelatedFieldNames = [
+      'groupregOrganization',
+      'groupregPrefillContact',
+      'groupregRelationshipType',
+    ];
+    var newContainer;
+    var iName;
+    for (var i in promptRelatedFieldNames) {
+      iName = promptRelatedFieldNames[i];
+      bhfeTr = $('table.groupreg-bhfe-table label[for="' + iName + '"]').closest('tr');
+      newContainer = baseContainer.clone();
+      newContainer.addClass('editrow_groupreg-' + iName + '-section');
+      newContainer.find('div.label').append(bhfeTr.find('td:eq(0)').children());
+      newContainer.find('div.content').append(bhfeTr.find('td:eq(1)').children());
+      newContainer.insertBefore($('div#groupreg_wrapper'));
+      bhfeTr.remove();
+    }
+    
+    // Remove the bhfe table, but only if it's empty.
+    if ($('table.groupreg-bhfe-table tr').length == 0) {
+      $('table.groupreg-bhfe-table').remove();
+    }
 
     // Define change handler for the "select a person" field.
     $('#groupregPrefillContact').on('change', groupregPrefillContactChange);
@@ -374,4 +406,3 @@ var onloadgroupregPrefillContactId = (CRM.vars.groupreg ? CRM.vars.groupreg.grou
     }
 
   });
-}(CRM.ts('com.joineryhq.groupreg')));

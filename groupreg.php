@@ -527,14 +527,24 @@ function groupreg_civicrm_buildForm($formName, &$form) {
 }
 
 function _groupreg_add_bhfe(array $elementNames, CRM_Core_Form &$form) {
-  $bhfe = $form->getTemplateVars('beginHookFormElements');
-  if (!$bhfe) {
-    $bhfe = [];
-  }
+  // Collect a list of non-hidden new fields.
+  $bhfeFields = [];
   foreach ($elementNames as $elementName) {
-    $bhfe[] = $elementName;
+    $field = $form->getElement($elementName);
+    if ($field->_type && $field->_type != 'hidden') {
+      $bhfeFields[] = $elementName;
+    }
+  }
+
+  // Add non-hidden fields to bhfe.
+  $bhfe = (array) $form->getTemplateVars('beginHookFormElements');
+  foreach ($bhfeFields as $bhfeField) {
+    $bhfe[] = $bhfeField;
   }
   $form->assign('beginHookFormElements', $bhfe);
+
+  // Pass the field names to js for on-page management.
+  CRM_Core_Resources::singleton()->addVars('groupreg', ['bhfe_fields' => $bhfeFields]);
 }
 
 function _groupreg_correct_status_messages() {

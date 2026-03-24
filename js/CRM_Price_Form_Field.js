@@ -1,18 +1,22 @@
-(function(ts) {
-  CRM.$(function($) {
+CRM.$(function($) {
+  // Give the bhfe elements table an id so we can handle it later.
+  $('input#is_hide_non_participant').closest('table').addClass('groupreg-bhfe-table');
 
-    // Give the bhfe elements table an id so we can handle it later.
-    $('input#is_hide_non_participant').closest('table').attr('id', 'bhfe_table');
+  // Note our target table (or tbody).
+  var trParent = $('input#is_active').closest('table').find('tr').parent();
 
-    var trLast = $('input#is_active').closest('table').find('tr').last();
-    
-    // remove the 'nowrap' class because it breaks the layout.
-    $('table#bhfe_table td').removeClass('nowrap');
-    // Move all bhfe table rows into the very last row of the settings table
-    $('table#bhfe_table tr').insertAfter(trLast);
+  var tr;
+  for (var i in CRM.vars.groupreg.bhfe_fields) {
+    // Move all of our bhfe fields into that table after that row.
+    tr = cj('table.groupreg-bhfe-table td [for^="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
+    tr.attr('id', 'tr-' + tr.find('input').attr('name').split('[')[0]);
+    tr.find('td:eq(0)').addClass('label');
+    tr.find('td').removeClass('nowrap');
+    trParent.append(tr);
+  }
 
-    // Remove the bhfe table, which should be empty by now.
-    $('table#bhfe_table').remove();
-
-  });
-}(CRM.ts('com.joineryhq.groupreg')));
+  // Remove the bhfe table, but only if it's empty.
+  if (cj('table.groupreg-bhfe-table tr').length == 0) {
+    cj('table.groupreg-bhfe-table').remove();
+  }
+});
