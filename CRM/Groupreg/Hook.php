@@ -4,6 +4,7 @@
  * Description of Hook
  */
 class CRM_Groupreg_Hook {
+
   public static function alterOrgs(&$orgs, &$disabledOrgCids) {
     $null = NULL;
     CRM_Utils_Hook::singleton()->invoke(
@@ -31,4 +32,19 @@ class CRM_Groupreg_Hook {
       'civicrm_groupreg_alterIndividuals'
     );
   }
+
+  public static function validateAdditionalParticipant($fields, &$errors) {
+    $null = NULL;
+    CRM_Utils_Hook::singleton()->invoke(
+      ['fields', 'errors'],
+      $fields,
+      $errors,
+      $null,
+      $null,
+      $null,
+      $null,
+      'civicrm_groupreg_validateAdditionalParticipant'
+    );
+  }
+
 }

@@ -55,6 +55,9 @@ function groupreg_civicrm_validateForm($formName, &$fields, &$files, &$form, &$e
       }
     }
   }
+  elseif ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
+    CRM_Groupreg_Hook::validateAdditionalParticipant($fields, $errors);
+  }
 
   if (array_key_exists('groupregTemporarilyUnrequiredFields', $form->_attributes)) {
     // Re-add temporarily unrequired fields to the list of required fields, so that
