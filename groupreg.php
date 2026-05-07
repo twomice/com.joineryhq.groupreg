@@ -493,6 +493,18 @@ function groupreg_civicrm_buildForm($formName, &$form) {
         // Store the list so we can add them back later.
         $form->_attributes['groupregTemporarilyUnrequiredFields'] = $groupregTemporarilyUnrequiredFields;
       }
+      // If this form is submitted, we must consider that form validation could have
+      // failed, in which case some fields won't be properly populated without additional
+      // steps. These are: 'selected individual' and 'relationship type' -- because
+      // these are dynamically populated/selected based on a chaining selection
+      // starting possibly as far back as with 'selected organization'. Therefore,
+      // we'll pass their submitted values in JS and allow our js script to set the
+      // value after it populates their options.
+      $jsVars = [
+        'groupregPrefillContactId' => $form->exportValue('groupregPrefillContactId'),
+        'groupregRelationshipType' => $form->exportValue('groupregRelationshipType'),
+      ];
+      CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
     }
   }
   elseif ($formName == 'CRM_Price_Form_Field') {
