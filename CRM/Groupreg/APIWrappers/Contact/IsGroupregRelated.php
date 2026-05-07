@@ -49,7 +49,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
         $selectableRelationshipTypeIds = array_keys(CRM_Groupreg_Util::getRelationshipTypesForContactType($baseContactType));
 
         // Filter relatedContacts to only those relationships that are of valid types.
-        $relatedContacts = array_filter($relatedContacts, function($relatedContact) use ($selectableRelationshipTypeIds){
+        $relatedContacts = array_filter($relatedContacts, function($relatedContact) use ($selectableRelationshipTypeIds) {
           return in_array($relatedContact['relationship_type_id'], $selectableRelationshipTypeIds);
         });
         // Rekey these relationships to the related contactId. If any contact
@@ -62,7 +62,8 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
         // we only need one of those membership types, and we don't care which one
         // it is (or rather, we have no way to prefer one over another).
         $relatedContacts = CRM_Utils_Array::rekey($relatedContacts, 'cid');
-        foreach ($result['values'] as &$value) {
+        $values = $result['values'];
+        foreach ($values as &$value) {
           // For each of the contacts in the api results, append this relationship information.
           $cid = $value['contact_id'];
           $relationship = $relatedContacts[$cid];
@@ -70,6 +71,10 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
           $value['relationship_type_id'] = $relationship['relationship_type_id'];
           $value['relationship_id'] = $relationship['id'];
         }
+
+        // Allow other extensions to modify the individual list and indicate disabled individuals.
+        CRM_Groupreg_Hook::alterIndividuals($values);
+        $result['values'] = $values;
       }
     }
     return $result;

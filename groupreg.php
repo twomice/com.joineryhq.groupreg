@@ -681,6 +681,11 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
           foreach ($relatedOrgs as $relatedOrgCid => $relatedOrg) {
             $groupregOrganizationOptions[$relatedOrgCid] = $relatedOrg['name'];
           }
+
+          // Allow other extensions to modify the org list and indicate disabled orgs
+          $disabledOrgCids = [];
+          CRM_Groupreg_Hook::alterOrgs($groupregOrganizationOptions, $disabledOrgCids);
+
           $form->add('select', 'groupregOrganization', E::ts('Select an organization'), $groupregOrganizationOptions, TRUE, [
             'class' => 'crm-select2',
             'style' => 'width: 100%;',
@@ -731,6 +736,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
           ];
         }
       }
+      $jsVars['groupregDisabledOrgCids'] = $disabledOrgCids ?? [];
       $jsVars['isRequreExistingContact'] = (bool) CRM_Utils_Array::value('is_require_existing_contact', $groupregEventSettings);
       CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
     }

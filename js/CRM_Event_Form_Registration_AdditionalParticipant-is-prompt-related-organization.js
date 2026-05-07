@@ -7,7 +7,7 @@
 CRM.$(function($) {
 
   /**
-   * JS change handler for "select a person" entityref field.
+   * JS change handler for "select organization" field.
    *
    */
   var groupregOrganizationChange = function groupregOrganizationChange(e) {
@@ -35,9 +35,16 @@ CRM.$(function($) {
         "return": ['id', 'display_name'],
       }).then(function(result) {
         // Upon returning, process the returned individuals:
-        // Add found individuals to the list.
+        // Define a shorthand variable for a unique 'id' attriute for each <option>
+        var optionId;
+        // Add found individuals to the list, as <option>s.
         for (var i in result.values) {
-          $('#groupregPrefillContact').append('<option value="' + result.values[i].id + '">'+ result.values[i].display_name);
+          optionId = 'prefillContact-' + result.values[i].id;
+          $('#groupregPrefillContact').append('<option id="' + optionId + '" value="' + result.values[i].id + '">'+ result.values[i].display_name);
+          if (result.values[i].groupregDisabled) {
+            // Mark this individual as disabled, if so called for.
+            $('#groupregPrefillContact option#' + optionId ).prop('disabled', true);
+          }
         }
         // Select the correct person in the list, if one is available onload.
         // We only do this one time per page load. The rationale here is that,
@@ -69,6 +76,18 @@ CRM.$(function($) {
       });
     }
   };
+
+  // Disable any "select organization" field options, as called for.
+  disabledValues = CRM.vars.groupreg.groupregDisabledOrgCids.map(String);
+  $('#groupregOrganization option').each(function () {
+    var val = $(this).val();
+
+    if (disabledValues.includes(val)) {
+      $(this).prop('disabled', true);
+    }
+  });
+  // refresh select2 UI
+  $('#groupregOrganization').trigger('change.select2');
 
   // Define change handler for the "select an organization" field.
   $('#groupregOrganization').on('change', groupregOrganizationChange);

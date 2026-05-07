@@ -42,6 +42,56 @@ Not mentioned in the video:
   "Regular Fees", a.k.a. "quick config" fees), then all price options will be
   presented for all participants (including the non-attendning registrant).
 
+## Available hooks
+
+This extension offers the following hooks to manipulate some of its behaviors:
+
+### hook_civicrm_groupreg_alterOrgs
+This hook is called when the extension builds its list of related Organizations
+which may be selected on "additional participant" forms -- which is displayed when
+the event configuration option "Prompt for Additional Participant through relationships?"
+is set to "Yes, through relationships to related organizations".
+
+For example, hook implementations could remove or modify any contact in this array;
+or add organizations to the array; or specify that certain organizations should
+be displayed as disabled (un-selectable).
+
+#### Definition
+`hook_civicrm_groupreg_alterOrgs(array &$orgs, array &$disabledOrgCids)`
+
+#### Parameters
+- `$orgs`: An array of organization names, keyed to organization contact IDs.
+- `$disabledOrgCids`: An array of organization contact IDs for organizations in
+  `$orgs` which should be presented as disabled (un-selectable) in the Additional
+  Participant form(s).
+
+### hook_civicrm_groupreg_alterIndividuals
+This hook is called when the extension builds its list of Individuals which may
+be selected on "additional participant" forms -- which is displayed when the
+event configuration option "Prompt for Additional Participant through relationships?"
+is set to "Yes, through relationships to related organizations" or "Yes, through
+direct relationships to primary participant".
+
+For example, hook implementations could remove or modify any contact in this array;
+or add individuals to the array.
+
+#### Definition
+`hook_civicrm_groupreg_alterIndividuals(array &$Individuals)`
+
+#### Parameters
+- `$individuals`: An array of API 4 results on a contact.get call. Each array
+  element represents a contact. Notable keys in each contact array, which are
+  defined and/or used by this extnsion (here, "relevant contact" is either the
+  current user, or the selected organization, depending on the value of the
+  event configuration option "Prompt for Additional Participant through relationships?"):
+  - `rtype`: String. The name of the relationship type by which this individual
+    is related to the relevant contact.
+  - `relationship_type_id`: Integer. The system id of that relationship type.
+  - `relationship_id`: Integer. The system id of the relationship by which this
+    individual is related to the relevant contact.
+  - `groupregDisabled`: Boolean. If true, this individual will be presented as
+    disabled (un-selectable) in the Additional Participant form(s).
+
 ## Requirements
 
 * PHP v7.0+
