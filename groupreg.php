@@ -500,10 +500,16 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // starting possibly as far back as with 'selected organization'. Therefore,
       // we'll pass their submitted values in JS and allow our js script to set the
       // value after it populates their options.
-      $jsVars = [
-        'groupregPrefillContactId' => $form->exportValue('groupregPrefillContactId'),
-        'groupregRelationshipType' => $form->exportValue('groupregRelationshipType'),
+      $jsVars = [];
+      $toJsElementNames = [
+        'groupregPrefillContactId',
+        'groupregRelationshipType',
       ];
+      foreach ($toJsElementNames as $toJsElementName) {
+        if ($form->_elementIndex[$toJsElementName]) {
+          $jsVars[$toJsElementName] = $form->exportValue($toJsElementName);
+        }
+      }
       CRM_Core_Resources::singleton()->addVars('groupreg', $jsVars);
     }
   }
