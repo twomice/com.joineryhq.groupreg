@@ -222,12 +222,13 @@ CRM.$(function($) {
    * For a given contact record returned by api contact.get, populate fields
    * as much as possible.
    */
-  var populateContactField = function populateContactField(key, value) {
+  var populateContactField = function populateContactField(fieldName, fieldValue) {
+    var selector;
     var contactFieldFound = false;
     // If a corresponding form field exists, update its value.
     if (!contactFieldFound) {
       // First, radio buttons.
-      selector = 'input[type="radio"][name="' + key + '"][value="' + value + '"]';
+      selector = 'input[type="radio"][name="' + fieldName + '"][value="' + CSS.escape(fieldValue) + '"]';
       if ($(selector).length) {
         contactFieldFound = true;
         $(selector).prop('checked', 1).change();
@@ -235,33 +236,33 @@ CRM.$(function($) {
     }
     if (!contactFieldFound) {
       // If no radio button, look for a single-value checkbox.
-      selector = 'input#' + key + '[type="checkbox"]';
+      selector = 'input#' + fieldName + '[type="checkbox"]';
       if ($(selector).length) {
         contactFieldFound = true;
-        $(selector).prop('checked', Boolean(value * 1)).change();
+        $(selector).prop('checked', Boolean(fieldValue * 1)).change();
       }
     }
-    if (!contactFieldFound && Array.isArray(value)) {
+    if (!contactFieldFound && Array.isArray(fieldValue)) {
       // If still not found, and value is an array, look for a multi-value checkbox.
-      var checkboxSetSelector = 'input[type="checkbox"][id^="' + key + '_"]';
+      var checkboxSetSelector = 'input[type="checkbox"][id^="' + fieldName + '_"]';
       if ($(checkboxSetSelector).length) {
         // We have found a multi-value checkbox set for this field.
         contactFieldFound = true;
         // Uncheck all of them, to start with a clean slate:
         $(checkboxSetSelector).prop('checked', false).change();
-        for (var i in value) {
+        for (var i in fieldValue) {
           // Check each of the checkboxes that matches a value.
-          selector = 'input[type="checkbox"][id="' + key + '_' + value[i] +'"]';
+          selector = 'input[type="checkbox"][id="' + fieldName + '_' + CSS.escape(fieldValue[i]) +'"]';
           $(selector).prop('checked', true).change();
         }
       }
     }
     if (!contactFieldFound) {
       // Finally, any type of input.
-      selector = '#' + key;
+      selector = '#' + fieldName;
       if ($(selector).length) {
         contactFieldFound = true;
-        $(selector).val(value).change();
+        $(selector).val(fieldValue).change();
       }
     }
   };
