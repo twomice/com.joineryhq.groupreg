@@ -50,10 +50,10 @@ CRM.$(function($) {
   var trMaxAdditional = $('select#max_additional_participants').closest('tr').next();
   for (var i in CRM.vars.groupreg.bhfe_fields) {
     // Move all of our bhfe fields into that table after that row.
-    tr = cj('table.groupreg-bhfe-table td [for^="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
+    tr = $('table.groupreg-bhfe-table td [for^="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
     if (!tr.length) {
       // No tr found? Might be a radio or otherwise make use of name="$fieldName".
-      tr = cj('table.groupreg-bhfe-table td input[name="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
+      tr = $('table.groupreg-bhfe-table td input[name="' + CRM.vars.groupreg.bhfe_fields[i] + '"]').closest('tr');
     }
     tr.find('td:eq(0)').addClass('label');
     tr.find('td').removeClass('nowrap');
@@ -61,8 +61,8 @@ CRM.$(function($) {
 
   }    
   // Remove the bhfe table, but only if it's empty.
-  if (cj('table.groupreg-bhfe-table tr').length == 0) {
-    cj('table.groupreg-bhfe-table').remove();
+  if ($('table.groupreg-bhfe-table tr').length == 0) {
+    $('table.groupreg-bhfe-table').remove();
   }
 
   // Add tr classes to facilitate show/hide:
