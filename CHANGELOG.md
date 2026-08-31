@@ -1,3 +1,8 @@
+## v1.2.5
+
+- Indicate support for civicrm 6.x
+
+
 ## v1.2.4
 
 - Bug-fix: on 'additional participant' forms, names containing quotation marks were causing fatal JS error upon field population.
