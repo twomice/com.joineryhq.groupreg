@@ -103,7 +103,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
     $id = $apiRequest['params']['id'] ?? NULL;
     // If no ID param is given, just use $relatedCids.
     if (empty($id)) {
-      return array('IN' => $relatedCids);
+      return ['IN' => $relatedCids];
     }
     // If a single ID param is given, make sure it's in $relatedCids.
     if (
@@ -118,7 +118,7 @@ class CRM_Groupreg_APIWrappers_Contact_IsGroupregRelated {
       && is_array($id['IN'])
     ) {
       $validIds = array_intersect($id['IN'], $relatedCids);
-      return array('IN' => $validIds);
+      return ['IN' => $validIds];
     }
 
     // If we're still here, return -1; this will give them nothing.

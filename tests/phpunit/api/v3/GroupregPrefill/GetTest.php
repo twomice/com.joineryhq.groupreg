@@ -46,7 +46,7 @@ class api_v3_GroupregPrefill_GetTest extends \PHPUnit\Framework\TestCase impleme
    * Note how the function name begins with the word "test".
    */
   public function testApiExample() {
-    $result = civicrm_api3('GroupregPrefill', 'Get', array('magicword' => 'sesame'));
+    $result = civicrm_api3('GroupregPrefill', 'Get', ['magicword' => 'sesame']);
     $this->assertEquals('Twelve', $result['values'][12]['name']);
   }
 

@@ -464,7 +464,7 @@ function groupreg_civicrm_buildForm($formName, &$form) {
       // participant counts.
       $total = $params[0]['additional_participants'] ?? NULL;
       $participantNo = substr($form->getVar('_name'), 12);
-      CRM_Utils_System::setTitle(E::ts('Register Participant %1 of %2', array(1 => $participantNo, 2 => $total)));
+      CRM_Utils_System::setTitle(E::ts('Register Participant %1 of %2', [1 => $participantNo, 2 => $total]));
       _groupreg_correct_status_messages();
 
       // Also hide "skip participant" on first additional participant; this is
@@ -574,7 +574,7 @@ function _groupreg_correct_status_messages() {
     // If ther are no statuses, $statuses could be NULL. Just return.
     return;
   };
-  $additionalRegex = '/' . E::ts('Registration information for participant %1 has been saved.', array(1 => '([0-9]+)')) . '/';
+  $additionalRegex = '/' . E::ts('Registration information for participant %1 has been saved.', [1 => '([0-9]+)']) . '/';
   foreach ($statuses as $status) {
     $matches = [];
     if (preg_match($additionalRegex, $status['text'], $matches)) {
@@ -584,7 +584,7 @@ function _groupreg_correct_status_messages() {
 
       }
       else {
-        $status['text'] = E::ts('Registration information for participant %1 has been saved.', array(1 => $correctedParticipantCount));
+        $status['text'] = E::ts('Registration information for participant %1 has been saved.', [1 => $correctedParticipantCount]);
       }
     }
     $status['options'] = $status['options'] ?: [];
@@ -688,7 +688,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
 
         // Select2 list of relationship types.
         $relationshipTypeOptions = CRM_Groupreg_Util::getRelationshipTypeOptions('Individual');
-        $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+        $form->add('select', 'groupregRelationshipType', E::ts('My relationship to this person'), $relationshipTypeOptions, TRUE, ['class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-']);
         $fieldNames = [
           'groupregPrefillContact',
           'groupregRelationshipType',
@@ -735,7 +735,7 @@ function _groupreg_buildForm_fields($formName, &$form = NULL) {
 
         // Select2 list of relationship types.
         $relationshipTypeOptions = CRM_Groupreg_Util::getRelationshipTypeOptions('Organization');
-        $form->add('select', 'groupregRelationshipType', E::ts("Organization's relationship to this person"), $relationshipTypeOptions, TRUE, array('class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-'));
+        $form->add('select', 'groupregRelationshipType', E::ts("Organization's relationship to this person"), $relationshipTypeOptions, TRUE, ['class' => 'crm-select2', 'style' => 'width: 100%;', 'placeholder' => '- ' . E::ts('SELECT') . '-']);
         $fieldNames = [
           'groupregOrganization',
           'groupregPrefillContact',
